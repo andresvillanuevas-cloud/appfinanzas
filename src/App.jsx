@@ -5,14 +5,19 @@ import {
   computeBalances, computeMonthStats, todayKey,
   registerCardPurchase as buildCardPurchase,
   buildCardPayment, buildCreditPayment, buildLinePayment, buildTransfer,
+  buildPulseAdjustment, confirmScheduled as buildScheduledMovement,
 } from "./engine/engine";
-import { useAccounts, useMovements, useCategories } from "./lib/useData";
+import { useAccounts, useMovements, useCategories, useBudgets, useScheduled } from "./lib/useData";
 import Auth from "./screens/Auth";
+import Inicio from "./screens/Inicio";
+import Presupuesto from "./screens/Presupuesto";
 import Cuentas from "./screens/Cuentas";
 import Movimientos from "./screens/Movimientos";
 import Mas from "./screens/Mas";
 import { NewAccount, AccountDetail } from "./components/AccountModals";
 import { QuickAdd, CardPurchase, PayCard, PayCredit, PayLine, Transfer } from "./components/MovementModals";
+import { BudgetAssign, Categories } from "./components/BudgetModals";
+import { Pulse, Scheduled } from "./components/PulseScheduled";
 
 const TABS = [
   { id: "inicio", label: "Inicio", icon: "🏠" },
@@ -32,6 +37,10 @@ function Modal({ shared, modal, close }) {
   if (t === "payCredit") return <PayCredit shared={shared} close={close} />;
   if (t === "payLine") return <PayLine shared={shared} close={close} />;
   if (t === "transfer") return <Transfer shared={shared} close={close} />;
+  if (t === "categories") return <Categories shared={shared} close={close} />;
+  if (t === "budgetAssign") return <BudgetAssign shared={shared} categoryId={modal.categoryId} close={close} />;
+  if (t === "pulse") return <Pulse shared={shared} close={close} />;
+  if (t === "scheduled") return <Scheduled shared={shared} close={close} />;
   return null;
 }
 
@@ -71,6 +80,8 @@ function Main({ session }) {
   const { accounts, addAccount, deleteAccount, loading: loadingAcc } = useAccounts(userId, notify);
   const { movements, addMovements, deleteMovement, loading: loadingMov } = useMovements(userId, notify);
   const { categories, addCategory, deleteCategory } = useCategories(userId, notify);
+  const { budgets, setBudget } = useBudgets(userId, notify);
+  const { scheduled, addScheduled, deleteScheduled } = useScheduled(userId, notify);
 
   // motor contable puro (src/engine/engine.js)
   const engine = useMemo(() => computeBalances(accounts, movements), [accounts, movements]);
@@ -92,11 +103,25 @@ function Main({ session }) {
   const payLine = (args) => { addMovements(buildLinePayment(args)); notify("Pago de línea registrado"); };
   const transfer = (args) => { addMovements(buildTransfer(args)); notify("Transferencia registrada"); };
 
+  // Pulso: la diferencia se registra como movimiento trazable (cuadrado)
+  const pulseAdjust = ({ accountId, diff }) => {
+    const categoryId = categories.find((c) => c.type === (diff < 0 ? "gasto" : "ingreso"))?.id || null;
+    const mov = buildPulseAdjustment({ accountId, diff, categoryId, month: todayKey() });
+    if (mov) { addMovements(mov); notify("Diferencia registrada (trazable)"); }
+  };
+  // Programado: recién al confirmar se crea el movimiento y se quita de la lista
+  const confirmScheduled = (s) => {
+    addMovements(buildScheduledMovement(s, todayKey()));
+    deleteScheduled(s.id);
+    notify("Confirmado — ahora toca el saldo");
+  };
+
   const shared = {
-    session, accounts, categories, movements, viewMonth, setViewMonth,
+    session, accounts, categories, movements, budgets, scheduled, viewMonth, setViewMonth,
     engine, monthStats, acc, cat, C,
     addAccount, deleteAccount, addMovements, addMovement, deleteMovement, addCategory, deleteCategory,
-    registerCardPurchase, payCard, payCredit, payLine, transfer,
+    setBudget, addScheduled, deleteScheduled,
+    registerCardPurchase, payCard, payCredit, payLine, transfer, pulseAdjust, confirmScheduled,
     setModal, notify,
   };
 
@@ -110,8 +135,8 @@ function Main({ session }) {
             <div style={{ textAlign: "center", color: C.sub, paddingTop: 80 }}>Cargando tus datos…</div>
           ) : (
             <>
-              {tab === "inicio" && <div style={{ padding: 20, color: C.sub }}>Pantalla "Inicio" pendiente (Fase 4).</div>}
-              {tab === "presupuesto" && <div style={{ padding: 20, color: C.sub }}>Pantalla "Presupuesto" pendiente (Fase 4).</div>}
+              {tab === "inicio" && <Inicio {...shared} />}
+              {tab === "presupuesto" && <Presupuesto {...shared} />}
               {tab === "movimientos" && <Movimientos {...shared} />}
               {tab === "cuentas" && <Cuentas {...shared} />}
               {tab === "mas" && <Mas {...shared} />}

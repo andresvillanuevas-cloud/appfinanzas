@@ -184,3 +184,71 @@ export function useCategories(userId, notify) {
   });
   return { categories: t.rows, loading: t.loading, addCategory: t.add, deleteCategory: t.remove };
 }
+
+// ---------- budgets ----------
+// El motor/UI usan un mapa anidado { "YYYY-MM": { catId: monto } } (como el
+// prototipo); la DB usa filas con unique(user_id, month, category_id).
+export function useBudgets(userId, notify) {
+  const [budgets, setBudgets] = useState({}); // { month: { catId: amount } }
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    let alive = true;
+    (async () => {
+      const { data, error } = await supabase.from("budgets").select("*");
+      if (!alive) return;
+      if (error) notify?.("Error cargando presupuestos");
+      else {
+        const map = {};
+        (data || []).forEach((r) => {
+          (map[r.month] ||= {})[r.category_id] = Number(r.amount) || 0;
+        });
+        setBudgets(map);
+      }
+      setLoading(false);
+    })();
+    return () => { alive = false; };
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // asigna/edita presupuesto de una categoría en un mes (optimista + upsert)
+  const setBudget = useCallback(async (month, categoryId, amount) => {
+    const value = Math.max(0, Number(amount) || 0);
+    let backup;
+    setBudgets((p) => {
+      backup = p;
+      return { ...p, [month]: { ...(p[month] || {}), [categoryId]: value } };
+    });
+    const { error } = await supabase
+      .from("budgets")
+      .upsert(
+        { user_id: userId, month, category_id: categoryId, amount: value },
+        { onConflict: "user_id,month,category_id" }
+      );
+    if (error) {
+      setBudgets(backup);
+      notify?.("No se pudo guardar el presupuesto");
+      return false;
+    }
+    return true;
+  }, [userId, notify]);
+
+  return { budgets, loading, setBudget };
+}
+
+// ---------- scheduled ----------
+const scheduledFromRow = (r) => ({
+  id: r.id, name: r.name, kind: r.kind, amount: Number(r.amount) || 0,
+  accountId: r.account_id, day: r.day,
+});
+const scheduledToRow = (s, userId) => ({
+  id: s.id, user_id: userId, name: s.name, kind: s.kind, amount: s.amount,
+  account_id: s.accountId || null, day: s.day || null,
+});
+
+export function useScheduled(userId, notify) {
+  const t = useTable({
+    userId, table: "scheduled", fromRow: scheduledFromRow, toRow: scheduledToRow, notify,
+  });
+  return { scheduled: t.rows, loading: t.loading, addScheduled: t.add, deleteScheduled: t.remove };
+}

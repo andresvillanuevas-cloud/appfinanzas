@@ -2,7 +2,13 @@ import { supabase } from "../lib/supabase";
 import { C } from "../lib/theme";
 import { Card } from "../components/ui";
 
-export default function Mas({ session, accounts = [], categories = [], movements = [] }) {
+export default function Mas({ session, accounts = [], categories = [], movements = [], scheduled = [], setModal }) {
+  const rows = [
+    ["🗓", "Programados", `${scheduled.length} activos · no tocan saldo`, () => setModal({ type: "scheduled" })],
+    ["🏷️", "Categorías", `${categories.length} activas`, () => setModal({ type: "categories" })],
+    ["📊", "Pulso", "Esperado vs Real", () => setModal({ type: "pulse" })],
+    ["🌎", "Moneda principal", "CLP · Peso Chileno", null],
+  ];
   return (
     <div style={{ padding: "6px 16px" }}>
       <div style={{ borderRadius: 24, padding: 20, background: `linear-gradient(150deg,${C.tealDim},${C.blue})`, marginBottom: 16 }}>
@@ -18,10 +24,13 @@ export default function Mas({ session, accounts = [], categories = [], movements
       </div>
 
       <Card style={{ padding: 0, overflow: "hidden", marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: 16 }}>
-          <span style={{ width: 40, height: 40, borderRadius: 12, background: C.card2, display: "grid", placeItems: "center", fontSize: 18 }}>🌎</span>
-          <div style={{ flex: 1 }}><div style={{ fontWeight: 700 }}>Moneda principal</div><div style={{ color: C.sub, fontSize: 13 }}>CLP · Peso Chileno</div></div>
-        </div>
+        {rows.map(([ic, title, sub, fn], i, arr) => (
+          <div key={title} onClick={fn || undefined} style={{ display: "flex", alignItems: "center", gap: 14, padding: 16, borderBottom: i < arr.length - 1 ? `1px solid ${C.line}` : "none", cursor: fn ? "pointer" : "default" }}>
+            <span style={{ width: 40, height: 40, borderRadius: 12, background: C.card2, display: "grid", placeItems: "center", fontSize: 18 }}>{ic}</span>
+            <div style={{ flex: 1 }}><div style={{ fontWeight: 700 }}>{title}</div><div style={{ color: C.sub, fontSize: 13 }}>{sub}</div></div>
+            {fn && <span style={{ color: C.faint }}>›</span>}
+          </div>
+        ))}
       </Card>
 
       <button

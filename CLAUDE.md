@@ -162,7 +162,15 @@ Trabajar fase por fase. **No avanzar de fase sin cumplir sus criterios de acepta
 - Bug de UI corregido en Transfer: al cambiar "Desde" a la cuenta seleccionada en "Hacia", el estado quedaba apuntando a la misma cuenta.
 - **Escenario real del dueño verificado e2e en navegador**: compra TC en curso 900.000×12 con próxima cuota 4 → 9 cuotas de 75.000 (jul 2026–mar 2027) persistidas; pago TC de 550.000 desde banco con saldo 500.000 → aviso azul "usarás $50.000 de la línea", saldo −50.000; pago de línea 50.000 desde efectivo → banco $0 y línea disp. completa; cupo Visa 875.000 y patrimonio cuadran. QuickAdd y transferencia verificados. Movimientos de prueba eliminados al cierre (las 4 cuentas de prueba quedan, sin movimientos son eliminables desde la UI).
 
-### Próximo: Fase 4 — Inicio, Presupuesto, Pulso, Programados
+### Fase 4 — Inicio, Presupuesto, Pulso, Programados: COMPLETA (2026-07-09)
+- Hooks nuevos en `src/lib/useData.js`: `useBudgets` (mapa anidado `{ "YYYY-MM": { catId: monto } }` ↔ filas DB, `setBudget` con upsert onConflict `user_id,month,category_id`) y `useScheduled` (add/delete sobre la tabla `scheduled`).
+- `src/screens/Inicio.jsx`: hero Disponible del mes (toggle Mes/Total), Esperado/Patrimonio, ingresos/gastos del mes, tarjeta acceso a Pulso, carruseles Dinero y Deudas y cupos (con línea disp./usada), últimos 3 movimientos.
+- `src/screens/Presupuesto.jsx` + `src/components/BudgetModals.jsx`: asignación por categoría/mes (sheet `BudgetAssign` en vez del `prompt()` del prototipo), gastado vs asignado con barra de progreso (cuotas TC cuentan en su mes), agrupación por prioridad, navegación de meses. Categorías CRUD (tipo, prioridad, ícono, color) con eliminar.
+- `src/components/PulseScheduled.jsx`: Pulso (wizard cuenta por cuenta esperado vs real; la diferencia se registra como movimiento `cuadrado` trazable vía `pulseAdjust`) y Programados (add + confirmar; recién al confirmar se crea el movimiento y se quita de la lista). Accesos en la pantalla Más.
+- **Verificado e2e en navegador**: categoría creada y persistida; presupuesto $250.000 asignado (upsert, sin duplicar); Pulso con real 490.000 vs esperado 500.000 generó gasto `cuadrado` de 10.000 y el saldo del banco pasó a 490.000; programado "Sueldo" 1.200.000 NO creó movimiento hasta confirmarlo, y al confirmar creó el ingreso y desapareció de la lista. Datos de prueba (movimientos/budgets/categorías) limpiados al cierre; quedan las 4 cuentas de prueba.
+- Nota de tooling: en el preview headless, el `.click()` sintético via eval no dispara los onClick de React de forma fiable en botones dentro de sheets; se usó el click real del preview tool (tag por id) para esos casos. No afecta la app real.
+
+### Próximo: Fase 5 — Export CSV/XLSX, PWA (manifest+iconos), pulido (toasts, estados vacíos, skeletons)
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).
