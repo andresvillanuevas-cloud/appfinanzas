@@ -155,7 +155,14 @@ Trabajar fase por fase. **No avanzar de fase sin cumplir sus criterios de acepta
 - `src/App.jsx`: frame móvil 430px del prototipo, tab bar, toast, switch de modales; motor puro conectado vía `useMemo`.
 - **Verificado en navegador (usuario andres@gmail.com)**: creadas cuentas banco (saldo 500.000 + línea 200.000), tarjeta (cupo 1.000.000, cierre 24/venc 5) y crédito (8×150.000 = 1.200.000 por pagar); patrimonio -700.000 correcto (cupo no suma); persistencia tras recarga OK; gasto confirmado baja saldo y pendiente NO (regla 1 con datos reales); buscador y detalle OK; cuenta con movimientos no muestra botón eliminar. Datos de prueba de movimientos eliminados; las 3 cuentas de prueba quedaron creadas (el dueño puede borrarlas desde el detalle).
 
-### Próximo: Fase 3 — Registro de movimientos (FAB, registro rápido, gasto TC, pagos, transferencias)
+### Fase 3 — Registro de movimientos: COMPLETA (2026-07-09)
+- `src/components/MovementModals.jsx`: QuickAdd (parser "Uber 8.500" → monto+comercio, aviso si no hay cuentas de dinero con derivación a crear cuenta o Gasto TC), CardPurchase (cuotas 1–36 con presets + input libre, primera ahora/diferida, compra en curso con stepper "próxima cuota X/N", preview de cuotas por venir, validación contra cupo usando monto restante), PayCard/PayCredit (origen con avail, aviso azul al usar línea, bloqueo si excede saldo+línea), PayLine (solo bancos con línea usada, solo origen con dinero real), Transfer (nuevo — no estaba en el prototipo; mismo estilo, puede usar línea con aviso).
+- FAB radial en `src/App.jsx` (6 acciones) + acciones de negocio que conectan los builders puros del motor con `addMovements`.
+- **Bug del prototipo corregido en el motor**: los topes `Math.max(0,…)` dentro del loop hacían que el resultado dependiera del orden del array (un pago procesado antes que sus cuotas se perdía — visible porque la DB devuelve ts desc). Ahora las sumas son conmutativas y los topes se aplican al final; test de independencia de orden agregado (28 tests verdes).
+- Bug de UI corregido en Transfer: al cambiar "Desde" a la cuenta seleccionada en "Hacia", el estado quedaba apuntando a la misma cuenta.
+- **Escenario real del dueño verificado e2e en navegador**: compra TC en curso 900.000×12 con próxima cuota 4 → 9 cuotas de 75.000 (jul 2026–mar 2027) persistidas; pago TC de 550.000 desde banco con saldo 500.000 → aviso azul "usarás $50.000 de la línea", saldo −50.000; pago de línea 50.000 desde efectivo → banco $0 y línea disp. completa; cupo Visa 875.000 y patrimonio cuadran. QuickAdd y transferencia verificados. Movimientos de prueba eliminados al cierre (las 4 cuentas de prueba quedan, sin movimientos son eliminables desde la UI).
+
+### Próximo: Fase 4 — Inicio, Presupuesto, Pulso, Programados
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).

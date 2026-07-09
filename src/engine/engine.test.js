@@ -280,6 +280,20 @@ describe("Regla 11 — programados no tocan saldo hasta confirmarse", () => {
   });
 });
 
+describe("orden de procesamiento — el resultado no depende del orden del array", () => {
+  it("pago TC listado ANTES que sus cuotas (orden desc, como llega de la DB) reduce igual el por-facturar", () => {
+    const cuotas = registerCardPurchase({
+      cardId: "tc", total: 300000, cuotas: 3, firstMonth: "2026-07",
+    }); // ts crecientes
+    const pago = { ...buildCardPayment({ cardId: "tc", fromId: "banco", amount: 100000, month: "2026-07" }), ts: Date.now() + 999 };
+    const asc = computeBalances(CUENTAS, [...cuotas, pago]);
+    const desc = computeBalances(CUENTAS, [pago, ...cuotas]); // pago primero en el array
+    expect(desc.cardUsed.tc).toBe(200000);
+    expect(desc.cardUsed.tc).toBe(asc.cardUsed.tc);
+    expect(desc.bal.banco).toBe(asc.bal.banco);
+  });
+});
+
 describe("integración — escenario real del dueño", () => {
   it("deuda TC en curso + pago con línea + pago de línea cuadran", () => {
     // 1) compra en curso: 900.000 en 12 cuotas, ya facturadas 3 (próxima: 4)

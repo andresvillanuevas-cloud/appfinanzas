@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
 import { C } from "./lib/theme";
-import { computeBalances, computeMonthStats, todayKey } from "./engine/engine";
+import {
+  computeBalances, computeMonthStats, todayKey,
+  registerCardPurchase as buildCardPurchase,
+  buildCardPayment, buildCreditPayment, buildLinePayment, buildTransfer,
+} from "./engine/engine";
 import { useAccounts, useMovements, useCategories } from "./lib/useData";
 import Auth from "./screens/Auth";
 import Cuentas from "./screens/Cuentas";
 import Movimientos from "./screens/Movimientos";
 import Mas from "./screens/Mas";
 import { NewAccount, AccountDetail } from "./components/AccountModals";
+import { QuickAdd, CardPurchase, PayCard, PayCredit, PayLine, Transfer } from "./components/MovementModals";
 
 const TABS = [
   { id: "inicio", label: "Inicio", icon: "🏠" },
@@ -21,8 +26,23 @@ function Modal({ shared, modal, close }) {
   const t = modal.type;
   if (t === "newAccount") return <NewAccount shared={shared} close={close} />;
   if (t === "accountDetail") return <AccountDetail shared={shared} accountId={modal.accountId} close={close} />;
+  if (t === "quick") return <QuickAdd shared={shared} close={close} />;
+  if (t === "cardPurchase") return <CardPurchase shared={shared} close={close} />;
+  if (t === "payCard") return <PayCard shared={shared} close={close} />;
+  if (t === "payCredit") return <PayCredit shared={shared} close={close} />;
+  if (t === "payLine") return <PayLine shared={shared} close={close} />;
+  if (t === "transfer") return <Transfer shared={shared} close={close} />;
   return null;
 }
+
+const FAB_ACTIONS = [
+  ["Registro rápido", "📝", "quick"],
+  ["Transferencia", "⇄", "transfer"],
+  ["Gasto TC", "💳", "cardPurchase"],
+  ["Pago TC", "💳", "payCard"],
+  ["Pago crédito", "📄", "payCredit"],
+  ["Pago línea", "🏦", "payLine"],
+];
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = cargando, null = sin sesión
@@ -43,6 +63,7 @@ function Main({ session }) {
   const [tab, setTab] = useState("inicio");
   const [viewMonth, setViewMonth] = useState(todayKey());
   const [modal, setModal] = useState(null);
+  const [fabOpen, setFabOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
   const notify = (m) => { setToast(m); setTimeout(() => setToast(null), 2200); };
@@ -58,10 +79,24 @@ function Main({ session }) {
   const acc = (id) => accounts.find((a) => a.id === id);
   const cat = (id) => categories.find((c) => c.id === id);
 
+  // ---------- acciones de negocio (motor puro → persistencia) ----------
+  const addMovement = (m) => addMovements(m);
+  const registerCardPurchase = (args) => {
+    const list = buildCardPurchase(args);
+    addMovements(list);
+    const n = args.cuotas - ((args.startIndex || 1) - 1);
+    notify(args.startIndex > 1 ? `Deuda en curso cargada (${n} cuotas por venir)` : `Compra en ${args.cuotas} ${args.cuotas === 1 ? "cuota" : "cuotas"} registrada`);
+  };
+  const payCard = (args) => { addMovements(buildCardPayment(args)); notify("Pago de tarjeta registrado"); };
+  const payCredit = (args) => { addMovements(buildCreditPayment(args)); notify("Pago de crédito registrado"); };
+  const payLine = (args) => { addMovements(buildLinePayment(args)); notify("Pago de línea registrado"); };
+  const transfer = (args) => { addMovements(buildTransfer(args)); notify("Transferencia registrada"); };
+
   const shared = {
     session, accounts, categories, movements, viewMonth, setViewMonth,
     engine, monthStats, acc, cat, C,
-    addAccount, deleteAccount, addMovements, deleteMovement, addCategory, deleteCategory,
+    addAccount, deleteAccount, addMovements, addMovement, deleteMovement, addCategory, deleteCategory,
+    registerCardPurchase, payCard, payCredit, payLine, transfer,
     setModal, notify,
   };
 
@@ -84,14 +119,32 @@ function Main({ session }) {
           )}
         </div>
 
-        {/* tab bar */}
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "rgba(10,14,20,.92)", backdropFilter: "blur(20px)", borderTop: `1px solid ${C.line}`, display: "flex", padding: "10px 6px 18px" }}>
-          {TABS.map(({ id, label, icon }) => (
-            <button key={id} onClick={() => setTab(id)} style={{ flex: 1, background: "none", border: "none", color: tab === id ? C.teal : C.sub, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
-              <span style={{ fontSize: 20 }}>{icon}</span>
-              {label}
-            </button>
-          ))}
+        {/* FAB radial */}
+        {fabOpen && (
+          <div onClick={() => setFabOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.55)", backdropFilter: "blur(2px)", zIndex: 40 }}>
+            <div style={{ position: "absolute", right: 20, bottom: 170, display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-end" }}>
+              {FAB_ACTIONS.map(([label, ic, type]) => (
+                <button key={label} onClick={(e) => { e.stopPropagation(); setFabOpen(false); setModal({ type }); }}
+                  style={{ display: "flex", alignItems: "center", gap: 10, background: C.card2, border: "none", color: C.txt, padding: "13px 18px", borderRadius: 26, fontSize: 16, fontWeight: 700, boxShadow: "0 6px 20px rgba(0,0,0,.5)", cursor: "pointer" }}>
+                  {label}
+                  <span style={{ width: 34, height: 34, borderRadius: 12, background: C.teal, display: "grid", placeItems: "center", fontSize: 15 }}>{ic}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* tab bar + botón FAB */}
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 45 }}>
+          <button onClick={() => setFabOpen((v) => !v)} style={{ position: "absolute", right: 20, bottom: 78, width: 62, height: 62, borderRadius: 31, border: "none", background: `linear-gradient(140deg,${C.teal},${C.blue})`, color: "#fff", fontSize: 30, boxShadow: "0 8px 24px rgba(0,0,0,.5)", transform: fabOpen ? "rotate(45deg)" : "none", transition: ".2s", zIndex: 50, cursor: "pointer" }}>+</button>
+          <div style={{ background: "rgba(10,14,20,.92)", backdropFilter: "blur(20px)", borderTop: `1px solid ${C.line}`, display: "flex", padding: "10px 6px 18px" }}>
+            {TABS.map(({ id, label, icon }) => (
+              <button key={id} onClick={() => setTab(id)} style={{ flex: 1, background: "none", border: "none", color: tab === id ? C.teal : C.sub, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                <span style={{ fontSize: 20 }}>{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {toast && (

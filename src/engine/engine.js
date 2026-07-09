@@ -52,6 +52,10 @@ export function computeBalances(accounts, movements) {
   const cardUsed = {};
   accounts.forEach((a) => { if (a.type === "tarjeta") cardUsed[a.id] = 0; });
 
+  // Todas las operaciones son sumas conmutativas: el resultado NO depende del
+  // orden del array. Los topes a 0 (no deber "de menos" tras un sobre-pago) se
+  // aplican AL FINAL — el prototipo los aplicaba dentro del loop, lo que hacía
+  // que un pago procesado antes que sus cuotas se perdiera (bug latente).
   movements.forEach((m) => {
     const conf = m.status === "confirmado" || m.status === "cuadrado";
     if (m.kind === "gasto" && conf) {
@@ -67,16 +71,20 @@ export function computeBalances(accounts, movements) {
     } else if (m.kind === "pagoTarjeta" && conf) {
       // mueve dinero real y reduce por-facturar
       if (bal[m.fromId] != null) bal[m.fromId] -= m.amount;
-      if (cardUsed[m.cardId] != null) cardUsed[m.cardId] = Math.max(0, cardUsed[m.cardId] - m.amount);
+      if (cardUsed[m.cardId] != null) cardUsed[m.cardId] -= m.amount;
     } else if (m.kind === "pagoCredito" && conf) {
       if (bal[m.fromId] != null) bal[m.fromId] -= m.amount;
-      if (debt[m.creditId] != null) debt[m.creditId] = Math.max(0, debt[m.creditId] - m.amount);
+      if (debt[m.creditId] != null) debt[m.creditId] -= m.amount;
     } else if (m.kind === "pagoLinea" && conf) {
       // paga la línea usada: baja dinero real de origen y sube el saldo negativo del banco hacia 0
       if (bal[m.fromId] != null) bal[m.fromId] -= m.amount;
       if (bal[m.bankId] != null) bal[m.bankId] += m.amount;
     }
   });
+
+  // tope: por-facturar y deuda nunca quedan negativos (sobre-pagos)
+  Object.keys(cardUsed).forEach((id) => { cardUsed[id] = Math.max(0, cardUsed[id]); });
+  Object.keys(debt).forEach((id) => { debt[id] = Math.max(0, debt[id]); });
 
   // patrimonio = dinero real (no cupos). Saldo negativo (línea usada) resta.
   const patrimonio = accounts.reduce((s, a) => {
@@ -173,6 +181,11 @@ export const buildCreditPayment = ({ creditId, fromId, amount, month }) => ({
 export const buildLinePayment = ({ bankId, fromId, amount, month }) => ({
   id: uid(), ts: Date.now(), kind: "pagoLinea", bankId, fromId, amount,
   month: month || todayKey(), status: "confirmado", merchant: "Pago línea",
+});
+
+export const buildTransfer = ({ fromId, toId, amount, month, note }) => ({
+  id: uid(), ts: Date.now(), kind: "transferencia", fromId, toId, amount,
+  month: month || todayKey(), status: "confirmado", merchant: "Transferencia", note,
 });
 
 // ---------- validaciones de pago (mismas reglas que los modales del prototipo) ----------
