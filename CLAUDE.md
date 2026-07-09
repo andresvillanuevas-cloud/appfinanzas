@@ -141,7 +141,13 @@ Trabajar fase por fase. **No avanzar de fase sin cumplir sus criterios de acepta
 - Nota de entorno: el proyecto Supabase tiene confirmación de email activada por defecto y el envío de emails (SMTP default) tiene rate limit muy bajo; para pruebas se crearon usuarios directamente desde el dashboard con "Auto Confirm User". Recomendado desactivar "Confirm email" en Authentication → Providers → Email dado que es una app de un solo usuario.
 - Pendiente: `dev.cmd` en la raíz del proyecto es un wrapper para levantar el server desde el preview tool (PATH de Node no disponible por defecto en esta máquina) — no es parte del build de producción.
 
-### Próximo: Fase 1 — Motor contable puro
+### Fase 1 — Motor contable puro: COMPLETA (2026-07-09)
+- Motor portado a `src/engine/engine.js` como funciones puras (cero imports — ni React ni Supabase): `computeBalances(accounts, movements)` → `{ bal, debt, cardUsed, lineUsed, avail, patrimonio, totalDinero }`, `computeMonthStats`, `registerCardPurchase` (con `startIndex` y remanente en primera cuota creada), constructores de pagos (`buildCardPayment`/`buildCreditPayment`/`buildLinePayment`), validadores (`validateDebtPayment`, `validateLinePayment`), `buildPulseAdjustment`, `confirmScheduled`, helpers `monthKey`/`addMonths`/`todayKey`.
+- 27 tests vitest en `src/engine/engine.test.js`, uno o más por regla de negocio 1–11 + escenario de integración del dueño (deuda TC en curso → pago con línea → pago de línea). 100% verdes (`npm test`).
+- **Desviación deliberada del prototipo**: `registerCardPurchase` usa `round` en vez de `floor` para la cuota base, porque el caso de aceptación de Fase 1 exige 5.000/3 = 1.667+1.667+1.666 (el prototipo daba 1.668+1.666+1.666). El ajuste de redondeo (±) sigue cayendo en la primera cuota creada.
+- Semántica heredada del prototipo a tener presente en la UI: `avail` puede ser negativo cuando la línea está agotada (avail = saldo + línea libre); los validadores ya lo manejan.
+
+### Próximo: Fase 2 — CRUD base + pantallas Cuentas y Movimientos
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).
