@@ -89,6 +89,25 @@ export const input = { width: "100%", boxSizing: "border-box", background: C.car
 
 export const primaryBtn = (disabled) => ({ width: "100%", background: disabled ? C.card2 : C.teal, border: "none", color: disabled ? C.faint : "#fff", padding: "16px 0", borderRadius: 16, fontWeight: 800, fontSize: 16, cursor: disabled ? "default" : "pointer" });
 
+// Skeleton de carga: bloques que laten mientras llegan los datos de Supabase.
+export function LoadingSkeleton() {
+  const block = (h, w = "100%", mb = 12) => (
+    <div style={{ height: h, width: w, background: C.card, borderRadius: 16, marginBottom: mb, animation: "mc-pulse 1.2s ease-in-out infinite" }} />
+  );
+  return (
+    <div style={{ padding: "6px 16px" }}>
+      <style>{"@keyframes mc-pulse{0%,100%{opacity:1}50%{opacity:.45}}"}</style>
+      <div style={{ height: 20, width: 90, background: C.card, borderRadius: 8, margin: "6px auto 18px", animation: "mc-pulse 1.2s ease-in-out infinite" }} />
+      {block(150, "100%", 16)}
+      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+        {block(64, "50%", 0)}{block(64, "50%", 0)}
+      </div>
+      {block(70)}
+      {block(120)}
+    </div>
+  );
+}
+
 export const MiniStat = ({ label, value }) => (
   <div style={{ background: C.card2, borderRadius: 12, padding: "10px 12px" }}>
     <div style={{ fontSize: 11, color: C.sub, fontWeight: 700, textTransform: "uppercase" }}>{label}</div>

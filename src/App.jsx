@@ -14,6 +14,7 @@ import Presupuesto from "./screens/Presupuesto";
 import Cuentas from "./screens/Cuentas";
 import Movimientos from "./screens/Movimientos";
 import Mas from "./screens/Mas";
+import { LoadingSkeleton } from "./components/ui";
 import { NewAccount, AccountDetail } from "./components/AccountModals";
 import { QuickAdd, CardPurchase, PayCard, PayCredit, PayLine, Transfer } from "./components/MovementModals";
 import { BudgetAssign, Categories } from "./components/BudgetModals";
@@ -132,7 +133,7 @@ function Main({ session }) {
       <div style={{ width: "100%", maxWidth: 430, background: C.bg, color: C.txt, minHeight: "100svh", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <div style={{ flex: 1, overflowY: "auto", paddingBottom: 120, paddingTop: 10 }}>
           {loading ? (
-            <div style={{ textAlign: "center", color: C.sub, paddingTop: 80 }}>Cargando tus datos…</div>
+            <LoadingSkeleton />
           ) : (
             <>
               {tab === "inicio" && <Inicio {...shared} />}

@@ -1,12 +1,21 @@
 import { supabase } from "../lib/supabase";
 import { C } from "../lib/theme";
 import { Card } from "../components/ui";
+import { exportCSV, exportXLSX } from "../lib/export";
 
-export default function Mas({ session, accounts = [], categories = [], movements = [], scheduled = [], setModal }) {
+export default function Mas({ session, accounts = [], categories = [], movements = [], scheduled = [], engine, setModal, notify }) {
+  const data = { accounts, categories, movements, engine };
+  const doExport = (fn, label) => {
+    if (!movements.length) { notify?.("Aún no hay movimientos para exportar"); return; }
+    fn(data);
+    notify?.(`${label} exportado`);
+  };
   const rows = [
     ["🗓", "Programados", `${scheduled.length} activos · no tocan saldo`, () => setModal({ type: "scheduled" })],
     ["🏷️", "Categorías", `${categories.length} activas`, () => setModal({ type: "categories" })],
     ["📊", "Pulso", "Esperado vs Real", () => setModal({ type: "pulse" })],
+    ["📄", "Exportar a Excel (.xlsx)", "Respaldo con movimientos y cuentas", () => doExport(exportXLSX, "Excel")],
+    ["📤", "Exportar a CSV", "Abre en Excel con tildes", () => doExport(exportCSV, "CSV")],
     ["🌎", "Moneda principal", "CLP · Peso Chileno", null],
   ];
   return (

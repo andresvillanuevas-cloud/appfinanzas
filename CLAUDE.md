@@ -170,7 +170,15 @@ Trabajar fase por fase. **No avanzar de fase sin cumplir sus criterios de acepta
 - **Verificado e2e en navegador**: categoría creada y persistida; presupuesto $250.000 asignado (upsert, sin duplicar); Pulso con real 490.000 vs esperado 500.000 generó gasto `cuadrado` de 10.000 y el saldo del banco pasó a 490.000; programado "Sueldo" 1.200.000 NO creó movimiento hasta confirmarlo, y al confirmar creó el ingreso y desapareció de la lista. Datos de prueba (movimientos/budgets/categorías) limpiados al cierre; quedan las 4 cuentas de prueba.
 - Nota de tooling: en el preview headless, el `.click()` sintético via eval no dispara los onClick de React de forma fiable en botones dentro de sheets; se usó el click real del preview tool (tag por id) para esos casos. No afecta la app real.
 
-### Próximo: Fase 5 — Export CSV/XLSX, PWA (manifest+iconos), pulido (toasts, estados vacíos, skeletons)
+### Fase 5 — Export, PWA y pulido: COMPLETA (2026-07-09)
+- Export en `src/lib/export.js`: `exportCSV` (BOM UTF-8, CRLF, todos los kinds; salidas de dinero —gasto/cuotaTC/pagos— con monto negativo, ingreso/transferencia positivo) y `exportXLSX` (SheetJS, hojas Movimientos + Cuentas). Botones en la pantalla Más; avisa si no hay movimientos.
+- Íconos PWA generados con `scripts/gen-icons.mjs` (encoder PNG propio con zlib de Node, **sin dependencias nuevas**): degradado teal→azul con barras ascendentes. Salidas en `public/`: pwa-192, pwa-512, maskable-512, apple-touch-icon (180). Regenerar con `node scripts/gen-icons.mjs`.
+- `vite.config.js`: manifest completo (name, íconos incl. maskable, standalone, portrait, es-CL). `index.html`: apple-touch-icon + metas `apple-mobile-web-app-*` + theme-color + viewport-fit=cover para instalación en iPhone.
+- Pulido: `LoadingSkeleton` (bloques con pulse) reemplaza el texto "Cargando…"; estados vacíos con CTA (ya existían) y toasts (ya existían).
+- **Verificado en navegador**: CSV exportado con BOM (bytes EF BB BF) y tildes intactas ("Almacén Ñuñoa", "Té y café"), signos correctos; XLSX se genera sin errores; `dist/index.html` de producción enlaza manifest + registerSW + apple-touch-icon + metas iOS; íconos sirven 200. (El manifest no se inyecta en modo dev de vite-plugin-pwa — es esperado; sí está en el build de producción.)
+- **Dependencia nueva**: `xlsx` (SheetJS, ya aprobada en CLAUDE.md). Advisory de seguridad conocido en xlsx aplica solo al PARSEO de archivos maliciosos; la app únicamente ESCRIBE xlsx con datos propios, sin exposición.
+
+### Estado v1: FASES 0–5 COMPLETAS. Pendiente para cierre total: correr el build de producción en una máquina limpia y validar instalación PWA en un iPhone real (criterio 11 del brief). Fase 6 es backlog (no construir).
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).
