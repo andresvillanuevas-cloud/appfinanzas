@@ -157,7 +157,22 @@ function useTable({ userId, table, fromRow, toRow, order, notify }) {
     return true;
   }, [table, notify]);
 
-  return { rows, loading, add, remove };
+  // elimina varios ids de una vez (ej. todas las cuotas de una compra TC)
+  const removeMany = useCallback(async (ids) => {
+    if (!ids?.length) return true;
+    const idset = new Set(ids);
+    let backup;
+    setRows((p) => { backup = p; return p.filter((r) => !idset.has(r.id)); });
+    const { error } = await supabase.from(table).delete().in("id", ids);
+    if (error) {
+      setRows(backup);
+      notify?.("No se pudo eliminar — revisa tu conexión");
+      return false;
+    }
+    return true;
+  }, [table, notify]);
+
+  return { rows, loading, add, remove, removeMany };
 }
 
 // ---------- hooks públicos ----------
@@ -174,7 +189,7 @@ export function useMovements(userId, notify) {
     userId, table: "movements", fromRow: movementFromRow, toRow: movementToRow,
     order: { column: "ts", ascending: false }, notify,
   });
-  return { movements: t.rows, loading: t.loading, addMovements: t.add, deleteMovement: t.remove };
+  return { movements: t.rows, loading: t.loading, addMovements: t.add, deleteMovement: t.remove, deleteMovements: t.removeMany };
 }
 
 export function useCategories(userId, notify) {
@@ -211,20 +226,25 @@ export function useBudgets(userId, notify) {
     return () => { alive = false; };
   }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // asigna/edita presupuesto de una categoría en un mes (optimista + upsert)
+  // asigna/edita presupuesto de una categoría en un mes (optimista).
+  // amount 0 = quitar el presupuesto → borra la fila en vez de dejar un 0 huérfano.
   const setBudget = useCallback(async (month, categoryId, amount) => {
     const value = Math.max(0, Number(amount) || 0);
     let backup;
     setBudgets((p) => {
       backup = p;
-      return { ...p, [month]: { ...(p[month] || {}), [categoryId]: value } };
+      const monthMap = { ...(p[month] || {}) };
+      if (value === 0) delete monthMap[categoryId];
+      else monthMap[categoryId] = value;
+      return { ...p, [month]: monthMap };
     });
-    const { error } = await supabase
-      .from("budgets")
-      .upsert(
-        { user_id: userId, month, category_id: categoryId, amount: value },
-        { onConflict: "user_id,month,category_id" }
-      );
+    const { error } = value === 0
+      ? await supabase.from("budgets").delete()
+          .eq("user_id", userId).eq("month", month).eq("category_id", categoryId)
+      : await supabase.from("budgets").upsert(
+          { user_id: userId, month, category_id: categoryId, amount: value },
+          { onConflict: "user_id,month,category_id" }
+        );
     if (error) {
       setBudgets(backup);
       notify?.("No se pudo guardar el presupuesto");

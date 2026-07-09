@@ -21,17 +21,18 @@ export function NewAccount({ shared, close }) {
   const palette = [C.teal, C.blue, C.violet, C.green, C.orange, C.red];
 
   const valid = name.trim() && (type !== "tarjeta" || cupo) && (type !== "credito" || (cuotaValue && cuotasRestantes));
+  const pos = (v) => Math.max(0, Number(v) || 0); // nunca negativo
   const create = () => {
     shared.addAccount({
       type, name: name.trim(), color,
-      initial: Number(initial) || 0,
-      cupo: Number(cupo) || 0,
-      line: Number(line) || 0,
-      cierre: Number(cierre) || 24,
-      venc: Number(venc) || 0,
-      cuotaValue: Number(cuotaValue) || 0,
-      cuotasRestantes: Number(cuotasRestantes) || 0,
-      pagoDia: Number(pagoDia) || 0,
+      initial: pos(initial),
+      cupo: pos(cupo),
+      line: pos(line),
+      cierre: pos(cierre) || 24,
+      venc: pos(venc),
+      cuotaValue: pos(cuotaValue),
+      cuotasRestantes: pos(cuotasRestantes),
+      pagoDia: pos(pagoDia),
       vencMonth: type === "credito" ? vencMonth : null,
     });
     shared.notify("Cuenta creada");
@@ -63,27 +64,27 @@ export function NewAccount({ shared, close }) {
       </Field>
 
       {meta.kind === "money" && (
-        <Field label="Saldo inicial (lo que ves hoy)"><input style={input} type="number" value={initial} onChange={(e) => setInitial(e.target.value)} placeholder="0" /></Field>
+        <Field label="Saldo inicial (lo que ves hoy)"><input style={input} type="number" min="0" value={initial} onChange={(e) => setInitial(e.target.value)} placeholder="0" /></Field>
       )}
       {type === "banco" && (
-        <Field label="Línea disponible (opcional)"><input style={input} type="number" value={line} onChange={(e) => setLine(e.target.value)} placeholder="0" /></Field>
+        <Field label="Línea disponible (opcional)"><input style={input} type="number" min="0" value={line} onChange={(e) => setLine(e.target.value)} placeholder="0" /></Field>
       )}
       {type === "tarjeta" && (
         <>
-          <Field label="Cupo total"><input style={input} type="number" value={cupo} onChange={(e) => setCupo(e.target.value)} placeholder="5.000.000" /></Field>
+          <Field label="Cupo total"><input style={input} type="number" min="0" value={cupo} onChange={(e) => setCupo(e.target.value)} placeholder="5.000.000" /></Field>
           <div style={{ display: "flex", gap: 10 }}>
-            <div style={{ flex: 1 }}><Field label="Día cierre"><input style={input} type="number" value={cierre} onChange={(e) => setCierre(e.target.value)} placeholder="Día 1" /></Field></div>
-            <div style={{ flex: 1 }}><Field label="Día venc."><input style={input} type="number" value={venc} onChange={(e) => setVenc(e.target.value)} placeholder="Día 10" /></Field></div>
+            <div style={{ flex: 1 }}><Field label="Día cierre"><input style={input} type="number" min="0" value={cierre} onChange={(e) => setCierre(e.target.value)} placeholder="Día 1" /></Field></div>
+            <div style={{ flex: 1 }}><Field label="Día venc."><input style={input} type="number" min="0" value={venc} onChange={(e) => setVenc(e.target.value)} placeholder="Día 10" /></Field></div>
           </div>
         </>
       )}
       {type === "credito" && (
         <>
           <div style={{ background: C.orangeSoft, borderRadius: 14, padding: 14, marginBottom: 14, fontSize: 13, color: C.sub }}>Ingresa el valor de la cuota y cuántas quedan. La app calcula el total por pagar.</div>
-          <Field label="Valor cuota"><input style={input} type="number" value={cuotaValue} onChange={(e) => setCuotaValue(e.target.value)} placeholder="500.000" /></Field>
-          <Field label="Cuotas restantes"><input style={input} type="number" value={cuotasRestantes} onChange={(e) => setCuotasRestantes(e.target.value)} placeholder="6" /></Field>
+          <Field label="Valor cuota"><input style={input} type="number" min="0" value={cuotaValue} onChange={(e) => setCuotaValue(e.target.value)} placeholder="500.000" /></Field>
+          <Field label="Cuotas restantes"><input style={input} type="number" min="0" value={cuotasRestantes} onChange={(e) => setCuotasRestantes(e.target.value)} placeholder="6" /></Field>
           <div style={{ display: "flex", gap: 10 }}>
-            <div style={{ flex: 1 }}><Field label="Día de pago"><input style={input} type="number" value={pagoDia} onChange={(e) => setPagoDia(e.target.value)} placeholder="Día 5" /></Field></div>
+            <div style={{ flex: 1 }}><Field label="Día de pago"><input style={input} type="number" min="0" value={pagoDia} onChange={(e) => setPagoDia(e.target.value)} placeholder="Día 5" /></Field></div>
             <div style={{ flex: 1.4 }}><Field label="Próximo vencimiento"><MonthNav value={vencMonth} onChange={setVencMonth} /></Field></div>
           </div>
           <div style={{ background: C.card, borderRadius: 14, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
@@ -168,7 +169,7 @@ export function AccountDetail({ shared, accountId, close }) {
       <div style={{ fontWeight: 700, marginBottom: 10 }}>Movimientos</div>
       {movs.length === 0 ? (
         <div style={{ background: C.card2, borderRadius: 14, padding: 20, textAlign: "center", color: C.sub }}>Sin movimientos en esta cuenta.</div>
-      ) : movs.map((m) => <MovRow key={m.id} m={m} acc={shared.acc} />)}
+      ) : movs.map((m) => <MovRow key={m.id} m={m} acc={shared.acc} onDelete={shared.removeMovement} />)}
 
       {/* eliminar solo si no tiene movimientos, con confirmación */}
       {movs.length === 0 && !confirmDel && (

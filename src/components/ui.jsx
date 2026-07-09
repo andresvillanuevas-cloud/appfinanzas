@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { C, CLP, keyToLabel } from "../lib/theme";
 import { addMonths } from "../engine/engine";
 
@@ -37,7 +38,8 @@ export const MonthNav = ({ value, onChange }) => (
   </div>
 );
 
-export function MovRow({ m, acc }) {
+export function MovRow({ m, acc, onDelete }) {
+  const [confirm, setConfirm] = useState(false);
   const neg = ["gasto", "cuotaTC", "pagoTarjeta", "pagoCredito", "pagoLinea"].includes(m.kind);
   const isTransfer = m.kind === "transferencia";
   const label = isTransfer ? "Transferencia" : m.merchant || "Movimiento";
@@ -47,18 +49,32 @@ export function MovRow({ m, acc }) {
     ? `cuota ${m.cuotaIndex}/${m.cuotasTotal} · ${acc(m.accountId)?.name || ""}`
     : `${acc(m.accountId || m.fromId || m.cardId || m.creditId)?.name || ""}`;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, background: C.card, borderRadius: 16, padding: "12px 14px", marginBottom: 8, border: `1px solid ${C.line}` }}>
-      <span style={{ width: 40, height: 40, borderRadius: 12, background: isTransfer ? C.blueSoft : neg ? C.redSoft : C.tealSoft, color: isTransfer ? C.blue : neg ? C.red : C.green, display: "grid", placeItems: "center", fontSize: 16 }}>
-        {isTransfer ? "⇄" : neg ? "💳" : "↓"}
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</div>
-        <div style={{ color: C.sub, fontSize: 12 }}>{sub}</div>
+    <div style={{ background: C.card, borderRadius: 16, marginBottom: 8, border: `1px solid ${C.line}`, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px" }}>
+        <span style={{ width: 40, height: 40, borderRadius: 12, background: isTransfer ? C.blueSoft : neg ? C.redSoft : C.tealSoft, color: isTransfer ? C.blue : neg ? C.red : C.green, display: "grid", placeItems: "center", fontSize: 16 }}>
+          {isTransfer ? "⇄" : neg ? "💳" : "↓"}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</div>
+          <div style={{ color: C.sub, fontSize: 12 }}>{sub}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontWeight: 800, color: neg ? C.red : isTransfer ? C.blue : C.green }}>{neg ? "-" : "+"}{CLP(m.amount)}</div>
+          <div style={{ fontSize: 11, color: m.status === "cuadrado" ? C.blue : C.sub }}>{m.status === "cuadrado" ? "✓ Cuadrado" : m.status === "confirmado" ? "✓" : "⏱ Pend."}</div>
+        </div>
+        {onDelete && !confirm && (
+          <button onClick={() => setConfirm(true)} style={{ background: "none", border: "none", color: C.faint, fontSize: 16, cursor: "pointer", padding: "0 2px" }}>🗑</button>
+        )}
       </div>
-      <div style={{ textAlign: "right" }}>
-        <div style={{ fontWeight: 800, color: neg ? C.red : isTransfer ? C.blue : C.green }}>{neg ? "-" : "+"}{CLP(m.amount)}</div>
-        <div style={{ fontSize: 11, color: m.status === "cuadrado" ? C.blue : C.sub }}>{m.status === "cuadrado" ? "✓ Cuadrado" : m.status === "confirmado" ? "✓" : "⏱ Pend."}</div>
-      </div>
+      {onDelete && confirm && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: C.redSoft, borderTop: `1px solid ${C.line}` }}>
+          <span style={{ flex: 1, fontSize: 13, color: C.red, fontWeight: 700 }}>
+            {m.kind === "cuotaTC" ? "¿Eliminar esta compra y todas sus cuotas?" : "¿Eliminar este movimiento?"}
+          </span>
+          <button onClick={() => setConfirm(false)} style={{ background: C.card2, border: `1px solid ${C.line}`, color: C.txt, padding: "8px 12px", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Cancelar</button>
+          <button onClick={() => { onDelete(m); }} style={{ background: C.red, border: "none", color: "#fff", padding: "8px 12px", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Eliminar</button>
+        </div>
+      )}
     </div>
   );
 }

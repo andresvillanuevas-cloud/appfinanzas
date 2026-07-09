@@ -79,7 +79,7 @@ function Main({ session }) {
   const notify = (m) => { setToast(m); setTimeout(() => setToast(null), 2200); };
 
   const { accounts, addAccount, deleteAccount, loading: loadingAcc } = useAccounts(userId, notify);
-  const { movements, addMovements, deleteMovement, loading: loadingMov } = useMovements(userId, notify);
+  const { movements, addMovements, deleteMovement, deleteMovements, loading: loadingMov } = useMovements(userId, notify);
   const { categories, addCategory, deleteCategory } = useCategories(userId, notify);
   const { budgets, setBudget } = useBudgets(userId, notify);
   const { scheduled, addScheduled, deleteScheduled } = useScheduled(userId, notify);
@@ -104,10 +104,11 @@ function Main({ session }) {
   const payLine = (args) => { addMovements(buildLinePayment(args)); notify("Pago de línea registrado"); };
   const transfer = (args) => { addMovements(buildTransfer(args)); notify("Transferencia registrada"); };
 
-  // Pulso: la diferencia se registra como movimiento trazable (cuadrado)
+  // Pulso: la diferencia se registra como movimiento trazable (cuadrado).
+  // Sin categoría: un descuadre de caja no debe distorsionar el presupuesto
+  // de ninguna categoría real.
   const pulseAdjust = ({ accountId, diff }) => {
-    const categoryId = categories.find((c) => c.type === (diff < 0 ? "gasto" : "ingreso"))?.id || null;
-    const mov = buildPulseAdjustment({ accountId, diff, categoryId, month: todayKey() });
+    const mov = buildPulseAdjustment({ accountId, diff, categoryId: null, month: todayKey() });
     if (mov) { addMovements(mov); notify("Diferencia registrada (trazable)"); }
   };
   // Programado: recién al confirmar se crea el movimiento y se quita de la lista
@@ -116,13 +117,25 @@ function Main({ session }) {
     deleteScheduled(s.id);
     notify("Confirmado — ahora toca el saldo");
   };
+  // Borrar un movimiento. Si es una cuota de una compra TC, borra la compra
+  // completa (todas sus cuotas) para no dejar una compra a medias.
+  const removeMovement = async (m) => {
+    if (m.kind === "cuotaTC" && m.purchaseGroup) {
+      const ids = movements.filter((x) => x.purchaseGroup === m.purchaseGroup).map((x) => x.id);
+      const ok = await deleteMovements(ids);
+      if (ok) notify(`Compra eliminada (${ids.length} cuota${ids.length > 1 ? "s" : ""})`);
+    } else {
+      const ok = await deleteMovement(m.id);
+      if (ok) notify("Movimiento eliminado");
+    }
+  };
 
   const shared = {
     session, accounts, categories, movements, budgets, scheduled, viewMonth, setViewMonth,
     engine, monthStats, acc, cat, C,
     addAccount, deleteAccount, addMovements, addMovement, deleteMovement, addCategory, deleteCategory,
     setBudget, addScheduled, deleteScheduled,
-    registerCardPurchase, payCard, payCredit, payLine, transfer, pulseAdjust, confirmScheduled,
+    registerCardPurchase, payCard, payCredit, payLine, transfer, pulseAdjust, confirmScheduled, removeMovement,
     setModal, notify,
   };
 

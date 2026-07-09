@@ -178,7 +178,14 @@ Trabajar fase por fase. **No avanzar de fase sin cumplir sus criterios de acepta
 - **Verificado en navegador**: CSV exportado con BOM (bytes EF BB BF) y tildes intactas ("Almacén Ñuñoa", "Té y café"), signos correctos; XLSX se genera sin errores; `dist/index.html` de producción enlaza manifest + registerSW + apple-touch-icon + metas iOS; íconos sirven 200. (El manifest no se inyecta en modo dev de vite-plugin-pwa — es esperado; sí está en el build de producción.)
 - **Dependencia nueva**: `xlsx` (SheetJS, ya aprobada en CLAUDE.md). Advisory de seguridad conocido en xlsx aplica solo al PARSEO de archivos maliciosos; la app únicamente ESCRIBE xlsx con datos propios, sin exposición.
 
-### Estado v1: FASES 0–5 COMPLETAS. Pendiente para cierre total: correr el build de producción en una máquina limpia y validar instalación PWA en un iPhone real (criterio 11 del brief). Fase 6 es backlog (no construir).
+### Revisión de código post-fase-5 (2026-07-09)
+Pasada de revisión general; 4 hallazgos corregidos y verificados:
+1. **Borrar movimiento desde la UI** (antes no existía): `MovRow` acepta `onDelete` con confirmación inline; wired en Movimientos y detalle de cuenta. Borrar una cuota TC elimina la **compra completa** (todas sus cuotas del `purchase_group`) vía `deleteMovements`/`removeMany` (delete `.in(id)`). Verificado e2e: grupo de 3 cuotas y gasto simple borrados de UI+DB, mensajes de confirmación distintos por tipo.
+2. **Pulso ya no ensucia categorías**: `pulseAdjust` usa `categoryId: null` (antes caía en la primera categoría de gasto por nombre, distorsionando su presupuesto).
+3. **setBudget(0) borra la fila** en vez de dejar un 0 huérfano (delete filtrado por user/month/category; verificado bajo RLS).
+4. **Inputs numéricos no negativos**: `min="0"` en todos los inputs de monto + clamp `Math.max(0, …)` al crear cuenta.
+
+### Estado v1: FASES 0–5 COMPLETAS + revisión aplicada. Pendiente para cierre total: correr el build de producción en una máquina limpia y validar instalación PWA en un iPhone real (criterio 11 del brief). Fase 6 es backlog (no construir).
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).

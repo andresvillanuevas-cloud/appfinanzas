@@ -48,7 +48,7 @@ export function QuickAdd({ shared, close }) {
           <span style={{ color: valid ? C.green : C.orange, fontWeight: 700 }}>{valid ? "Listo" : "Falta monto"}</span>
         </div>
         <RowSelect label="Tipo" value={type === "gasto" ? "Gasto" : "Ingreso"} onClick={() => setType(type === "gasto" ? "ingreso" : "gasto")} />
-        <Field label="Monto"><input style={input} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" /></Field>
+        <Field label="Monto"><input style={input} type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" /></Field>
         <Field label="Cuenta">
           {moneyAcc.length === 0 ? (
             <div style={{ background: C.orangeSoft, borderRadius: 12, padding: 13, fontSize: 13, color: C.txt, lineHeight: 1.45 }}>
@@ -136,7 +136,7 @@ export function CardPurchase({ shared, close }) {
         </select>
       </Field>
       <Field label="Comercio"><input style={input} value={merchant} onChange={(e) => setMerchant(e.target.value)} placeholder="Ej. Supermercado, restaurante" /></Field>
-      <Field label="Monto total"><input style={input} type="number" value={total} onChange={(e) => setTotal(e.target.value)} placeholder="0" /></Field>
+      <Field label="Monto total"><input style={input} type="number" min="0" value={total} onChange={(e) => setTotal(e.target.value)} placeholder="0" /></Field>
       {total && montoRestante > cupoDisp ? <div style={{ background: C.redSoft, color: C.red, borderRadius: 12, padding: 12, fontSize: 13, marginBottom: 12 }}>⚠ Lo que falta facturar ({CLP(montoRestante)}) excede el cupo disponible ({CLP(cupoDisp)}).</div> : null}
       <Field label="Categoría">
         <select style={{ ...input, appearance: "none" }} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
@@ -243,7 +243,7 @@ export function PayCard({ shared, close }) {
           })}
         </select>
       </Field>
-      <Field label="Monto"><input style={input} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={String(facturar || 0)} /></Field>
+      <Field label="Monto"><input style={input} type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={String(facturar || 0)} /></Field>
       {usaLinea && n <= disp && (
         <div style={{ background: C.blueSoft, color: C.blue, borderRadius: 12, padding: 12, fontSize: 13 }}>ℹ Usarás {CLP(lineaUsada)} de la línea de {fromAcc?.name}. El saldo quedará en {CLP(real - n)} (línea usada). Podrás pagar esa línea después con dinero real.</div>
       )}
@@ -294,7 +294,7 @@ export function PayCredit({ shared, close }) {
           })}
         </select>
       </Field>
-      <Field label="Monto"><input style={input} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={String(credit?.cuotaValue || 0)} /></Field>
+      <Field label="Monto"><input style={input} type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={String(credit?.cuotaValue || 0)} /></Field>
       {usaLinea && n <= disp && (
         <div style={{ background: C.blueSoft, color: C.blue, borderRadius: 12, padding: 12, fontSize: 13 }}>ℹ Usarás {CLP(lineaUsada)} de la línea de {fromAcc?.name}. El saldo quedará en {CLP(real - n)} (línea usada).</div>
       )}
@@ -337,7 +337,7 @@ export function PayLine({ shared, close }) {
           {others.map((a) => <option key={a.id} value={a.id}>{a.name} — disp. {CLP(shared.engine.bal[a.id] || 0)}</option>)}
         </select>
       </Field>
-      <Field label="Monto"><input style={input} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={String(usada)} /></Field>
+      <Field label="Monto"><input style={input} type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={String(usada)} /></Field>
       {n > real && <div style={{ background: C.redSoft, color: C.red, borderRadius: 12, padding: 12, fontSize: 13 }}>⚠ La línea se paga con dinero real. {shared.acc(fromId)?.name} solo tiene {CLP(real)}.</div>}
       {n > usada && <div style={{ background: C.redSoft, color: C.red, borderRadius: 12, padding: 12, fontSize: 13 }}>⚠ El monto supera la línea usada ({CLP(usada)}).</div>}
     </Sheet>
@@ -384,7 +384,7 @@ export function Transfer({ shared, close }) {
           {money.filter((a) => a.id !== fromId).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
       </Field>
-      <Field label="Monto"><input style={input} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" /></Field>
+      <Field label="Monto"><input style={input} type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" /></Field>
       {fromId === toId && <div style={{ background: C.redSoft, color: C.red, borderRadius: 12, padding: 12, fontSize: 13 }}>⚠ Elige cuentas distintas.</div>}
       {usaLinea && n <= disp && (
         <div style={{ background: C.blueSoft, color: C.blue, borderRadius: 12, padding: 12, fontSize: 13 }}>ℹ Usarás {CLP(lineaUsada)} de la línea de {fromAcc?.name}. El saldo quedará en {CLP(real - n)} (línea usada).</div>

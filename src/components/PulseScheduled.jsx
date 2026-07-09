@@ -32,7 +32,7 @@ export function Pulse({ shared, close }) {
           </div>
           <div style={{ flex: 1, background: C.tealSoft, borderRadius: 14, padding: 14 }}>
             <div style={{ fontSize: 12, color: C.green, fontWeight: 700 }}>Real</div>
-            <input type="number" value={real} onChange={(e) => setReals((p) => ({ ...p, [cur.id]: e.target.value }))} placeholder="Anota" style={{ width: "100%", boxSizing: "border-box", background: "transparent", border: "none", color: C.green, fontSize: 22, fontWeight: 800, outline: "none" }} />
+            <input type="number" min="0" value={real} onChange={(e) => setReals((p) => ({ ...p, [cur.id]: e.target.value }))} placeholder="Anota" style={{ width: "100%", boxSizing: "border-box", background: "transparent", border: "none", color: C.green, fontSize: 22, fontWeight: 800, outline: "none" }} />
           </div>
         </div>
         <div style={{ textAlign: "center" }}>
@@ -73,7 +73,7 @@ export function Scheduled({ shared, close }) {
             ))}
           </div>
         </div>
-        <div style={{ flex: 1 }}><Field label="Monto"><input style={input} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" /></Field></div>
+        <div style={{ flex: 1 }}><Field label="Monto"><input style={input} type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" /></Field></div>
       </div>
       <Field label="Cuenta">
         <select style={{ ...input, appearance: "none" }} value={accountId} onChange={(e) => setAccountId(e.target.value)}>

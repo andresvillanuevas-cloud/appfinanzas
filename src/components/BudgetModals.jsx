@@ -23,7 +23,7 @@ export function BudgetAssign({ shared, categoryId, close }) {
         </div>
       </div>
       <Field label="Monto asignado este mes">
-        <input style={input} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" autoFocus />
+        <input style={input} type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" autoFocus />
       </Field>
       <div style={{ color: C.sub, fontSize: 13 }}>Deja en 0 para quitar el presupuesto de esta categoría este mes.</div>
     </Sheet>
