@@ -147,7 +147,15 @@ Trabajar fase por fase. **No avanzar de fase sin cumplir sus criterios de acepta
 - **Desviación deliberada del prototipo**: `registerCardPurchase` usa `round` en vez de `floor` para la cuota base, porque el caso de aceptación de Fase 1 exige 5.000/3 = 1.667+1.667+1.666 (el prototipo daba 1.668+1.666+1.666). El ajuste de redondeo (±) sigue cayendo en la primera cuota creada.
 - Semántica heredada del prototipo a tener presente en la UI: `avail` puede ser negativo cuando la línea está agotada (avail = saldo + línea libre); los validadores ya lo manejan.
 
-### Próximo: Fase 2 — CRUD base + pantallas Cuentas y Movimientos
+### Fase 2 — CRUD base + Cuentas y Movimientos: COMPLETA (2026-07-09)
+- Hooks de datos en `src/lib/useData.js` (`useAccounts`/`useMovements`/`useCategories`): mapeo snake_case (DB) ↔ camelCase (motor/UI), inserts/deletes optimistas con revert + toast si Supabase falla. Los ids se generan en cliente con `crypto.randomUUID()` (el `uid()` del motor ahora emite UUID v4 válidos para Postgres).
+- Primitivas UI en `src/components/ui.jsx` (Card, Empty, Sheet, Field, MovRow, MonthNav, etc.). Los SF Symbols de iOS del prototipo se reemplazaron por emoji/unicode (no renderizan fuera de Apple).
+- `src/screens/Cuentas.jsx`: hero patrimonio, grupos Dinero/Tarjetas/Créditos. `src/components/AccountModals.jsx`: NewAccount (6 tipos con campos condicionales, incl. día pago + próximo vencimiento en créditos, total por pagar en vivo) y AccountDetail (cupo con barra de uso, línea disp./usada, vencimientos, historial; eliminar SOLO sin movimientos, con confirmación inline en vez del confirm() nativo).
+- `src/screens/Movimientos.jsx`: buscador (comercio/nota/categoría/cuenta), filtros Todo/Este mes/Futuros, filas con estados. Nota: el filtro "Futuros" del prototipo no filtraba nada; aquí filtra `month > mes actual`.
+- `src/App.jsx`: frame móvil 430px del prototipo, tab bar, toast, switch de modales; motor puro conectado vía `useMemo`.
+- **Verificado en navegador (usuario andres@gmail.com)**: creadas cuentas banco (saldo 500.000 + línea 200.000), tarjeta (cupo 1.000.000, cierre 24/venc 5) y crédito (8×150.000 = 1.200.000 por pagar); patrimonio -700.000 correcto (cupo no suma); persistencia tras recarga OK; gasto confirmado baja saldo y pendiente NO (regla 1 con datos reales); buscador y detalle OK; cuenta con movimientos no muestra botón eliminar. Datos de prueba de movimientos eliminados; las 3 cuentas de prueba quedaron creadas (el dueño puede borrarlas desde el detalle).
+
+### Próximo: Fase 3 — Registro de movimientos (FAB, registro rápido, gasto TC, pagos, transferencias)
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).

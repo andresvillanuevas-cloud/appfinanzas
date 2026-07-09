@@ -24,3 +24,27 @@ export const C = {
 
 export const CLP = (n) =>
   "$" + Math.round(n).toLocaleString("es-CL", { maximumFractionDigits: 0 });
+
+export const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+export const keyToLabel = (k) => {
+  if (!k) return "";
+  const [y, m] = k.split("-").map(Number);
+  return `${MESES[m - 1]}. ${y}`;
+};
+
+// Tipos de cuenta y prioridades, tal cual el prototipo
+export const ACCOUNT_TYPES = [
+  { id: "efectivo", label: "Efectivo", sub: "Billetera", icon: "💵", color: C.green, kind: "money" },
+  { id: "banco", label: "Cuenta bancaria", sub: "Banco", icon: "🏛️", color: C.violet, kind: "money" },
+  { id: "ahorro", label: "Ahorro", sub: "Reserva", icon: "🗄️", color: C.blue, kind: "money" },
+  { id: "tarjeta", label: "Tarjeta de crédito", sub: "Cupo", icon: "💳", color: C.violet, kind: "card" },
+  { id: "credito", label: "Crédito", sub: "Deuda", icon: "📄", color: C.orange, kind: "credit" },
+  { id: "inversion", label: "Inversión", sub: "Valor", icon: "📈", color: C.orange, kind: "money" },
+];
+
+export const PRIORIDADES = [
+  { id: "obligaciones", label: "Obligaciones", color: C.blue },
+  { id: "necesidades", label: "Necesidades", color: C.teal },
+  { id: "gustos", label: "Gustos", color: C.orange },
+];

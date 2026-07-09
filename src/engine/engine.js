@@ -25,7 +25,14 @@ export const addMonths = (key, n) => {
 
 export const todayKey = () => monthKey(new Date());
 
-export const uid = () => Math.random().toString(36).slice(2, 10);
+// UUID v4 real: los ids generados aquí se insertan tal cual en Postgres (columnas uuid)
+export const uid = () =>
+  globalThis.crypto?.randomUUID
+    ? globalThis.crypto.randomUUID()
+    : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+      });
 
 // ---------- motor de saldos ----------
 // computeBalances(accounts, movements) →
