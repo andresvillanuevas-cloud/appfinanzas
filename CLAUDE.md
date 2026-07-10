@@ -193,7 +193,16 @@ Pasada de revisión general; 4 hallazgos corregidos y verificados:
 - Producción: `appfinanzas-brown.vercel.app`. Env vars en Vercel: `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (**usar la publishable `sb_publishable_…`, NO la JWT legacy `eyJ…` — el proyecto rechaza la legacy con "Invalid API key"**). Cambiar env var requiere Redeploy manual (Vite hornea en build).
 - PWA con `registerType: autoUpdate` → la app instalada se actualiza sola.
 
-### Estado v1: FASES 0–5 COMPLETAS + revisión + categorías predefinidas + desplegado en Vercel. Pendiente para cierre total: validar instalación PWA en un iPhone real (criterio 11). Fase 6 es backlog (no construir).
+### Fase 6 — parcial, sin gastos compartidos en pareja (2026-07-09)
+Se implementaron 4 de los 6 ítems del backlog original; 2 se descartaron por incompatibilidad con la arquitectura PWA/CLP-only (decisión explícita del dueño, no pendiente):
+- **Modo claro**: paleta migrada a variables CSS (`--mc-*` en `index.css`, `[data-theme]`), toggle en Más, persistido en localStorage. Acentos de color (teal/rojo/etc.) quedan iguales en ambos temas porque se guardan como hex en la DB (color de cuenta/categoría).
+- **Gráficos de tendencia** (`src/components/Tendencia.jsx`, sin librerías): ingresos vs gastos de los últimos 6 meses (barras) + desglose de gastos por categoría del mes actual. Acceso desde Más.
+- **Historial de cuotas pagadas**: en el detalle de una tarjeta, las cuotas 1..(startIndex-1) de una compra "en curso" (que nunca existieron como movimientos) se reconstruyen y muestran agrupadas por `purchaseGroup` bajo "Cuotas ya pagadas".
+- **Reglas recurrentes en Programados**: columna `frequency` (`unico`/`mensual`/`semanal`) en `scheduled` — migración `supabase/migrations/0002_scheduled_frequency.sql` (**pendiente correr en Supabase**, no se puede vía anon key). Si es recurrente, confirmar NO borra el programado de la lista (antes siempre se borraba).
+- **Descartados**: widgets/atajos de iOS (requieren app nativa, no viable en PWA) y multi-moneda (rompe el diseño CLP-only validado; proyecto aparte).
+- **Selector de fecha en transacciones** (pedido del dueño, fuera del backlog original): helpers `todayDateStr`/`dateStrToMonth`/`dateStrToTs` en engine.js; componente `DateField` en ui.jsx (tope: no permite fecha futura, para eso están los Programados). Agregado a Registro rápido, Gasto TC (reemplaza el toggle "Ahora/Diferida" — ese toggle ahora es exclusivamente sobre el MES DE FACTURACIÓN de la primera cuota, no la fecha de compra, son conceptos distintos), Pago TC, Pago crédito, Pago línea y Transferencia. `month` se deriva de la fecha elegida (importante para que quede en el presupuesto del mes correcto), `ts` para orden/CSV.
+
+### Estado v1: FASES 0–5 COMPLETAS + revisión + categorías predefinidas + Fase 6 parcial + selector de fecha + desplegado en Vercel. Pendientes: correr migración 0002 en Supabase (recurrentes), validar instalación PWA en un iPhone real (criterio 11).
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).
