@@ -85,7 +85,16 @@ export function Categories({ shared, close }) {
         </>
       ) : (
         shared.categories.length === 0 ? (
-          <div style={{ textAlign: "center", color: C.sub, padding: 30 }}>Aún no tienes categorías.<br />Crea la primera abajo.</div>
+          <div style={{ textAlign: "center", color: C.sub, padding: "20px 10px" }}>
+            Aún no tienes categorías.
+            <button
+              onClick={() => { shared.seedCategories(); shared.notify("Categorías sugeridas agregadas"); }}
+              style={{ display: "block", width: "100%", marginTop: 16, background: C.tealSoft, border: `1px solid ${C.tealDim}`, color: C.green, padding: "13px 0", borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: "pointer" }}
+            >
+              ✨ Agregar categorías sugeridas
+            </button>
+            <div style={{ fontSize: 12, marginTop: 10 }}>o crea la tuya con el botón de abajo.</div>
+          </div>
         ) : (
           PRIORIDADES.map((p) => {
             const list = shared.categories.filter((c) => (c.type === "gasto" ? c.prioridad === p.id : false));

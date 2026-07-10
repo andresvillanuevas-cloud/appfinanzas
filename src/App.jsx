@@ -8,6 +8,7 @@ import {
   buildPulseAdjustment, confirmScheduled as buildScheduledMovement,
 } from "./engine/engine";
 import { useAccounts, useMovements, useCategories, useBudgets, useScheduled } from "./lib/useData";
+import { DEFAULT_CATEGORIES } from "./lib/defaults";
 import Auth from "./screens/Auth";
 import Inicio from "./screens/Inicio";
 import Presupuesto from "./screens/Presupuesto";
@@ -80,9 +81,26 @@ function Main({ session }) {
 
   const { accounts, addAccount, deleteAccount, loading: loadingAcc } = useAccounts(userId, notify);
   const { movements, addMovements, deleteMovement, deleteMovements, loading: loadingMov } = useMovements(userId, notify);
-  const { categories, addCategory, deleteCategory } = useCategories(userId, notify);
+  const { categories, addCategory, deleteCategory, loading: loadingCat } = useCategories(userId, notify);
   const { budgets, setBudget } = useBudgets(userId, notify);
   const { scheduled, addScheduled, deleteScheduled } = useScheduled(userId, notify);
+
+  // Siembra categorías comunes la PRIMERA vez que la cuenta no tiene ninguna.
+  // Flag por usuario para no volver a sembrar aunque el usuario las borre luego.
+  useEffect(() => {
+    if (loadingCat) return;
+    const flag = `micuadra_seeded_categorias_${userId}`;
+    if (localStorage.getItem(flag)) return;
+    localStorage.setItem(flag, "1");
+    if (categories.length === 0) {
+      addCategory(DEFAULT_CATEGORIES).then((res) => {
+        if (!res) localStorage.removeItem(flag); // si falló, reintenta en la próxima carga
+      });
+    }
+  }, [loadingCat, userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Agregar categorías sugeridas a mano (por si las borraron todas)
+  const seedCategories = () => addCategory(DEFAULT_CATEGORIES);
 
   // motor contable puro (src/engine/engine.js)
   const engine = useMemo(() => computeBalances(accounts, movements), [accounts, movements]);
@@ -134,7 +152,7 @@ function Main({ session }) {
     session, accounts, categories, movements, budgets, scheduled, viewMonth, setViewMonth,
     engine, monthStats, acc, cat, C,
     addAccount, deleteAccount, addMovements, addMovement, deleteMovement, addCategory, deleteCategory,
-    setBudget, addScheduled, deleteScheduled,
+    setBudget, addScheduled, deleteScheduled, seedCategories,
     registerCardPurchase, payCard, payCredit, payLine, transfer, pulseAdjust, confirmScheduled, removeMovement,
     setModal, notify,
   };

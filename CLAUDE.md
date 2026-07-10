@@ -185,7 +185,15 @@ Pasada de revisión general; 4 hallazgos corregidos y verificados:
 3. **setBudget(0) borra la fila** en vez de dejar un 0 huérfano (delete filtrado por user/month/category; verificado bajo RLS).
 4. **Inputs numéricos no negativos**: `min="0"` en todos los inputs de monto + clamp `Math.max(0, …)` al crear cuenta.
 
-### Estado v1: FASES 0–5 COMPLETAS + revisión aplicada. Pendiente para cierre total: correr el build de producción en una máquina limpia y validar instalación PWA en un iPhone real (criterio 11 del brief). Fase 6 es backlog (no construir).
+### Categorías predefinidas (2026-07-09)
+- `src/lib/defaults.js`: 13 categorías comunes (Chile) agrupadas por prioridad. Se **siembran automáticamente** la primera vez que una cuenta no tiene ninguna (efecto en `App.jsx`, gated con flag `micuadra_seeded_categorias_<userId>` en localStorage para no re-sembrar si el usuario las borra). Botón manual "✨ Agregar categorías sugeridas" en el estado vacío de la modal de Categorías (`shared.seedCategories`). Verificado e2e: login sembró las 13 y quedaron agrupadas en Presupuesto.
+
+### Despliegue (2026-07-09)
+- Repo en GitHub: `andresvillanuevas-cloud/appfinanzas` (rama `master`). Push → Vercel auto-deploy.
+- Producción: `appfinanzas-brown.vercel.app`. Env vars en Vercel: `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (**usar la publishable `sb_publishable_…`, NO la JWT legacy `eyJ…` — el proyecto rechaza la legacy con "Invalid API key"**). Cambiar env var requiere Redeploy manual (Vite hornea en build).
+- PWA con `registerType: autoUpdate` → la app instalada se actualiza sola.
+
+### Estado v1: FASES 0–5 COMPLETAS + revisión + categorías predefinidas + desplegado en Vercel. Pendiente para cierre total: validar instalación PWA en un iPhone real (criterio 11). Fase 6 es backlog (no construir).
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).
