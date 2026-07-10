@@ -118,7 +118,7 @@ export default function Inicio({ engine, monthStats, accounts, movements, acc, s
       {recent.length === 0 ? (
         <Empty icon="🧾" title="Sin movimientos todavía" sub="Usa el botón + para registrar tu primer gasto o ingreso." />
       ) : (
-        recent.map((m) => <MovRow key={m.id} m={m} acc={acc} />)
+        recent.map((m) => <MovRow key={m.id} m={m} acc={acc} onOpen={(mov) => setModal({ type: "movementDetail", movement: mov })} />)
       )}
     </div>
   );

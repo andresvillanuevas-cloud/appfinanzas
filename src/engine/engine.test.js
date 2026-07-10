@@ -12,6 +12,8 @@ import {
   validateLinePayment,
   monthKey,
   addMonths,
+  projectedCardPayments,
+  cardStatement,
 } from "./engine.js";
 
 // ---------- fixtures ----------
@@ -328,5 +330,57 @@ describe("integración — escenario real del dueño", () => {
 
     // el gasto del mes es SOLO la cuota TC de julio (anti-duplicación)
     expect(computeMonthStats(movs, "2026-07").gas).toBe(cuotas[0].amount);
+  });
+});
+
+describe("projectedCardPayments — vista de solo lectura, no altera saldos", () => {
+  it("agrupa cuotas TC por mes, en orden cronológico, desde fromMonth", () => {
+    const cuotas = registerCardPurchase({
+      cardId: "tc", total: 300000, cuotas: 3, firstMonth: "2026-07",
+    });
+    const proy = projectedCardPayments(cuotas, "tc", "2026-07");
+    expect(proy).toEqual([
+      { month: "2026-07", total: 100000 },
+      { month: "2026-08", total: 100000 },
+      { month: "2026-09", total: 100000 },
+    ]);
+  });
+  it("excluye meses anteriores a fromMonth y suma varias compras del mismo mes", () => {
+    // A: 90.000/3 desde jun → cuotas en jun(excluida)/jul/ago, 30.000 c/u
+    const compraA = registerCardPurchase({ cardId: "tc", total: 90000, cuotas: 3, firstMonth: "2026-06" });
+    // B: 60.000/2 desde jul → cuotas en jul/ago, 30.000 c/u
+    const compraB = registerCardPurchase({ cardId: "tc", total: 60000, cuotas: 2, firstMonth: "2026-07" });
+    const proy = projectedCardPayments([...compraA, ...compraB], "tc", "2026-07");
+    // junio queda excluido por fromMonth; jul y ago suman 30.000+30.000 cada uno
+    expect(proy).toEqual([
+      { month: "2026-07", total: 60000 },
+      { month: "2026-08", total: 60000 },
+    ]);
+  });
+  it("ignora movimientos de otra tarjeta o de otro kind", () => {
+    const cuotas = registerCardPurchase({ cardId: "tc", total: 100000, cuotas: 1, firstMonth: "2026-07" });
+    const otra = registerCardPurchase({ cardId: "otra-tc", total: 999999, cuotas: 1, firstMonth: "2026-07" });
+    const pago = buildCardPayment({ cardId: "tc", fromId: "banco", amount: 100000, month: "2026-07" });
+    const proy = projectedCardPayments([...cuotas, ...otra, pago], "tc", "2026-07");
+    expect(proy).toEqual([{ month: "2026-07", total: 100000 }]);
+  });
+});
+
+describe("cardStatement — estado de cuenta de un mes de facturación", () => {
+  it("separa confirmadas, por confirmar, abonado y calcula por pagar", () => {
+    const cuotaConfirmada = registerCardPurchase({ cardId: "tc", total: 50000, cuotas: 1, firstMonth: "2026-07" })[0];
+    const cuotaPendiente = { ...cuotaConfirmada, id: "pend1", status: "pendiente", amount: 20000 };
+    const pago = buildCardPayment({ cardId: "tc", fromId: "banco", amount: 30000, month: "2026-07" });
+    const st = cardStatement([cuotaConfirmada, cuotaPendiente, pago], "tc", "2026-07");
+    expect(st.confirmadas).toBe(50000);
+    expect(st.porConfirmar).toBe(20000);
+    expect(st.abonado).toBe(30000);
+    expect(st.porPagar).toBe(20000); // 50.000 confirmadas - 30.000 abonado
+    expect(st.compras).toHaveLength(2);
+    expect(st.pagos).toHaveLength(1);
+  });
+  it("mes sin movimientos devuelve todo en cero", () => {
+    const st = cardStatement([], "tc", "2026-07");
+    expect(st).toMatchObject({ confirmadas: 0, porConfirmar: 0, abonado: 0, porPagar: 0, compras: [], pagos: [] });
   });
 });

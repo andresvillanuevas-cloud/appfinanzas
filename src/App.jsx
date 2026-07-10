@@ -15,7 +15,7 @@ import Presupuesto from "./screens/Presupuesto";
 import Cuentas from "./screens/Cuentas";
 import Movimientos from "./screens/Movimientos";
 import Mas from "./screens/Mas";
-import { LoadingSkeleton } from "./components/ui";
+import { LoadingSkeleton, MovementDetail } from "./components/ui";
 import { NewAccount, AccountDetail } from "./components/AccountModals";
 import { QuickAdd, CardPurchase, PayCard, PayCredit, PayLine, Transfer } from "./components/MovementModals";
 import { BudgetAssign, Categories } from "./components/BudgetModals";
@@ -45,6 +45,7 @@ function Modal({ shared, modal, close }) {
   if (t === "pulse") return <Pulse shared={shared} close={close} />;
   if (t === "scheduled") return <Scheduled shared={shared} close={close} />;
   if (t === "tendencia") return <Tendencia shared={shared} close={close} />;
+  if (t === "movementDetail") return <MovementDetail m={modal.movement} acc={shared.acc} cat={shared.cat} close={close} />;
   return null;
 }
 

@@ -257,3 +257,37 @@ export function confirmScheduled(sch, month) {
     note: "Programado confirmado",
   };
 }
+
+// ---------- proyección de pagos de tarjeta ----------
+// Agrupa las cuotas TC (kind === "cuotaTC") de una tarjeta por mes de
+// facturación, desde `fromMonth` en adelante. Solo lectura: no altera saldos
+// ni cardUsed, es una vista de "lo que viene a facturarse".
+export function projectedCardPayments(movements, cardId, fromMonth) {
+  const byMonth = {};
+  movements.forEach((m) => {
+    if (m.kind !== "cuotaTC" || m.accountId !== cardId) return;
+    if (m.month < fromMonth) return;
+    byMonth[m.month] = (byMonth[m.month] || 0) + m.amount;
+  });
+  return Object.entries(byMonth)
+    .filter(([, total]) => total > 0)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([month, total]) => ({ month, total }));
+}
+
+// ---------- estado de cuenta de tarjeta (por mes de facturación) ----------
+// Desglosa los movimientos de una tarjeta en un mes dado en los 4 stats que
+// muestra la UI. Solo lectura.
+export function cardStatement(movements, cardId, month) {
+  const compras = movements.filter((m) => m.kind === "cuotaTC" && m.accountId === cardId && m.month === month);
+  const pagos = movements.filter((m) => m.kind === "pagoTarjeta" && m.cardId === cardId && m.month === month);
+  const confirmadas = compras
+    .filter((m) => m.status === "confirmado" || m.status === "cuadrado")
+    .reduce((s, m) => s + m.amount, 0);
+  const porConfirmar = compras
+    .filter((m) => m.status === "pendiente")
+    .reduce((s, m) => s + m.amount, 0);
+  const abonado = pagos.reduce((s, m) => s + m.amount, 0);
+  const porPagar = confirmadas - abonado;
+  return { compras, pagos, confirmadas, porConfirmar, abonado, porPagar };
+}

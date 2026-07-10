@@ -38,7 +38,7 @@ export const MonthNav = ({ value, onChange }) => (
   </div>
 );
 
-export function MovRow({ m, acc, onDelete }) {
+export function MovRow({ m, acc, onDelete, onOpen }) {
   const [confirm, setConfirm] = useState(false);
   const neg = ["gasto", "cuotaTC", "pagoTarjeta", "pagoCredito", "pagoLinea"].includes(m.kind);
   const isTransfer = m.kind === "transferencia";
@@ -50,20 +50,26 @@ export function MovRow({ m, acc, onDelete }) {
     : `${acc(m.accountId || m.fromId || m.cardId || m.creditId)?.name || ""}`;
   return (
     <div style={{ background: C.card, borderRadius: 16, marginBottom: 8, border: `1px solid ${C.line}`, overflow: "hidden" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px" }}>
+      <div
+        onClick={onOpen ? () => onOpen(m) : undefined}
+        style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", cursor: onOpen ? "pointer" : "default" }}
+      >
         <span style={{ width: 40, height: 40, borderRadius: 12, background: isTransfer ? C.blueSoft : neg ? C.redSoft : C.tealSoft, color: isTransfer ? C.blue : neg ? C.red : C.green, display: "grid", placeItems: "center", fontSize: 16 }}>
           {isTransfer ? "⇄" : neg ? "💳" : "↓"}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</div>
-          <div style={{ color: C.sub, fontSize: 12 }}>{sub}</div>
+          <div style={{ color: C.sub, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</div>
+          {m.note && (
+            <div style={{ color: C.faint, fontSize: 11, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>📝 {m.note}</div>
+          )}
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontWeight: 800, color: neg ? C.red : isTransfer ? C.blue : C.green }}>{neg ? "-" : "+"}{CLP(m.amount)}</div>
           <div style={{ fontSize: 11, color: m.status === "cuadrado" ? C.blue : C.sub }}>{m.status === "cuadrado" ? "✓ Cuadrado" : m.status === "confirmado" ? "✓" : "⏱ Pend."}</div>
         </div>
         {onDelete && !confirm && (
-          <button onClick={() => setConfirm(true)} style={{ background: "none", border: "none", color: C.faint, fontSize: 16, cursor: "pointer", padding: "0 2px" }}>🗑</button>
+          <button onClick={(e) => { e.stopPropagation(); setConfirm(true); }} style={{ background: "none", border: "none", color: C.faint, fontSize: 16, cursor: "pointer", padding: "0 2px" }}>🗑</button>
         )}
       </div>
       {onDelete && confirm && (
@@ -76,6 +82,49 @@ export function MovRow({ m, acc, onDelete }) {
         </div>
       )}
     </div>
+  );
+}
+
+// Detalle de un movimiento: muestra la nota completa (sin truncar) y el resto
+// de campos relevantes. Solo lectura.
+export function MovementDetail({ m, acc, cat, close }) {
+  const neg = ["gasto", "cuotaTC", "pagoTarjeta", "pagoCredito", "pagoLinea"].includes(m.kind);
+  const isTransfer = m.kind === "transferencia";
+  const label = isTransfer ? "Transferencia" : m.merchant || "Movimiento";
+  const cuentaLabel = isTransfer
+    ? `${acc(m.fromId)?.name || "—"} → ${acc(m.toId)?.name || "—"}`
+    : acc(m.accountId || m.fromId || m.cardId || m.creditId || m.bankId)?.name || "—";
+  const estadoLabel = m.status === "cuadrado" ? "Cuadrado" : m.status === "confirmado" ? "Confirmado" : "Pendiente";
+  const rows = [
+    ["Cuenta", cuentaLabel],
+    !isTransfer ? ["Categoría", cat(m.categoryId)?.name || "Sin categoría"] : null,
+    m.kind === "cuotaTC" ? ["Cuota", `${m.cuotaIndex}/${m.cuotasTotal}`] : null,
+    ["Mes", keyToLabel(m.month)],
+    ["Fecha", m.ts ? new Date(m.ts).toLocaleDateString("es-CL") : "—"],
+    ["Estado", estadoLabel],
+  ].filter(Boolean);
+
+  return (
+    <Sheet title="Detalle del movimiento" close={close}>
+      <div style={{ textAlign: "center", marginBottom: 20 }}>
+        <div style={{ fontSize: 34, fontWeight: 800, color: neg ? C.red : isTransfer ? C.blue : C.green }}>{neg ? "-" : "+"}{CLP(m.amount)}</div>
+        <div style={{ color: C.sub, fontSize: 14, marginTop: 4 }}>{label}</div>
+      </div>
+      <div style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, overflow: "hidden", marginBottom: 16 }}>
+        {rows.map(([k, v], i) => (
+          <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "12px 16px", borderBottom: i < rows.length - 1 ? `1px solid ${C.line}` : "none" }}>
+            <span style={{ color: C.sub }}>{k}</span>
+            <span style={{ fontWeight: 700 }}>{v}</span>
+          </div>
+        ))}
+      </div>
+      {m.note && (
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, textTransform: "uppercase", marginBottom: 6 }}>Nota</div>
+          <div style={{ background: C.card2, borderRadius: 14, padding: 14, color: C.txt, lineHeight: 1.5 }}>{m.note}</div>
+        </div>
+      )}
+    </Sheet>
   );
 }
 

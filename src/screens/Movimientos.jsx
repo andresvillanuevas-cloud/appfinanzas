@@ -3,7 +3,7 @@ import { C } from "../lib/theme";
 import { todayKey } from "../engine/engine";
 import { Empty, MovRow } from "../components/ui";
 
-export default function Movimientos({ movements, acc, cat, viewMonth, removeMovement }) {
+export default function Movimientos({ movements, acc, cat, viewMonth, removeMovement, setModal }) {
   const [q, setQ] = useState("");
   const [range, setRange] = useState("mes");
   const hoy = todayKey();
@@ -30,7 +30,7 @@ export default function Movimientos({ movements, acc, cat, viewMonth, removeMove
       {list.length === 0 ? (
         <Empty icon="🧾" title="Sin movimientos" sub="Los gastos, ingresos y transferencias que registres aparecerán aquí." />
       ) : (
-        list.map((m) => <MovRow key={m.id} m={m} acc={acc} onDelete={removeMovement} />)
+        list.map((m) => <MovRow key={m.id} m={m} acc={acc} onDelete={removeMovement} onOpen={(mov) => setModal({ type: "movementDetail", movement: mov })} />)
       )}
     </div>
   );

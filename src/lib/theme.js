@@ -39,6 +39,16 @@ export const keyToLabel = (k) => {
   return `${MESES[m - 1]}. ${y}`;
 };
 
+export const MESES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+// "Agosto 2026" — para títulos de secciones (pagos proyectados, etc.)
+export const keyToLabelLargo = (k) => {
+  if (!k) return "";
+  const [y, m] = k.split("-").map(Number);
+  const nombre = MESES_LARGO[m - 1];
+  return `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${y}`;
+};
+
 // Tipos de cuenta y prioridades, tal cual el prototipo
 export const ACCOUNT_TYPES = [
   { id: "efectivo", label: "Efectivo", sub: "Billetera", icon: "💵", color: C.green, kind: "money" },

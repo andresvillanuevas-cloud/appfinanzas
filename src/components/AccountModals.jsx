@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { C, CLP, keyToLabel, ACCOUNT_TYPES } from "../lib/theme";
-import { todayKey } from "../engine/engine";
+import { C, CLP, keyToLabel, keyToLabelLargo, MESES, ACCOUNT_TYPES } from "../lib/theme";
+import { todayKey, projectedCardPayments, cardStatement } from "../engine/engine";
 import { Sheet, Field, input, primaryBtn, MonthNav, MovRow } from "./ui";
 
 // ---- Nueva cuenta (6 tipos con campos condicionales) ----
@@ -97,9 +97,17 @@ export function NewAccount({ shared, close }) {
   );
 }
 
+const STATEMENT_TABS = [
+  ["todos", "Todos"],
+  ["porConfirmar", "Por confirmar"],
+  ["compras", "Compras"],
+];
+
 // ---- Detalle de cuenta ----
 export function AccountDetail({ shared, accountId, close }) {
   const [confirmDel, setConfirmDel] = useState(false);
+  const [statMonth, setStatMonth] = useState(todayKey());
+  const [statTab, setStatTab] = useState("todos");
   const a = shared.accounts.find((x) => x.id === accountId);
   if (!a) return null;
   const isCard = a.type === "tarjeta";
@@ -109,6 +117,18 @@ export function AccountDetail({ shared, accountId, close }) {
   const facturar = isCard ? shared.engine.cardUsed[accountId] || 0 : 0;
   const cupoDisp = isCard ? (a.cupo || 0) - facturar : 0;
   const uso = isCard && a.cupo ? Math.round((facturar / a.cupo) * 100) : 0;
+
+  // Pagos proyectados: cuotas TC (mes actual en adelante) agrupadas por mes.
+  const proyectados = isCard ? projectedCardPayments(shared.movements, accountId, todayKey()) : [];
+
+  // Estado de cuenta: desglose del mes navegable + lista filtrable por tab.
+  const statement = isCard ? cardStatement(shared.movements, accountId, statMonth) : null;
+  const statementList = !statement ? [] : statTab === "compras"
+    ? statement.compras
+    : statTab === "porConfirmar"
+    ? statement.compras.filter((m) => m.status === "pendiente")
+    : [...statement.compras, ...statement.pagos].sort((x, y) => (y.ts || 0) - (x.ts || 0));
+  const mesAbrev = MESES[Number(statMonth.split("-")[1]) - 1];
 
   // Compras en cuotas "en curso": las cuotas que ya se pagaron ANTES de
   // registrar la compra (1..startIndex-1) no existen como movimientos; se
@@ -151,6 +171,58 @@ export function AccountDetail({ shared, accountId, close }) {
               <div style={{ textAlign: "right" }}><div style={{ fontSize: 11, color: C.sub, fontWeight: 700 }}>DÍA VENCIMIENTO</div><div style={{ fontWeight: 700 }}>{a.venc || "—"}</div></div>
             </div>
           )}
+
+          {/* Pagos proyectados: cuotas TC que vienen, agrupadas por mes */}
+          {proyectados.length > 0 && (
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>Pagos proyectados</div>
+              {proyectados.map(({ month, total }) => (
+                <div key={month} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 8, border: `1px solid ${C.line}` }}>
+                  <span style={{ fontWeight: 600 }}>{keyToLabelLargo(month)}</span>
+                  <span style={{ fontWeight: 800, color: C.orange }}>{CLP(total)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Estado de cuenta: período navegable + 4 stats + tabs */}
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+              <div>
+                <div style={{ fontWeight: 700 }}>Periodo y movimientos</div>
+                <div style={{ color: C.sub, fontSize: 12 }}>Cierre {a.cierre || "—"} {mesAbrev}. · vence {a.venc || "—"} {mesAbrev}.</div>
+              </div>
+              <MonthNav value={statMonth} onChange={setStatMonth} />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "12px 0" }}>
+              <div style={{ background: C.card2, borderRadius: 12, padding: 12 }}>
+                <div style={{ fontSize: 11, color: C.sub, fontWeight: 700 }}>CONFIRMADAS</div>
+                <div style={{ fontWeight: 800, color: C.violet }}>{CLP(statement.confirmadas)}</div>
+              </div>
+              <div style={{ background: C.card2, borderRadius: 12, padding: 12 }}>
+                <div style={{ fontSize: 11, color: C.sub, fontWeight: 700 }}>POR CONFIRMAR</div>
+                <div style={{ fontWeight: 800, color: C.orange }}>{CLP(statement.porConfirmar)}</div>
+              </div>
+              <div style={{ background: C.card2, borderRadius: 12, padding: 12 }}>
+                <div style={{ fontSize: 11, color: C.sub, fontWeight: 700 }}>ABONADO</div>
+                <div style={{ fontWeight: 800, color: C.green }}>{CLP(statement.abonado)}</div>
+              </div>
+              <div style={{ background: C.card2, borderRadius: 12, padding: 12 }}>
+                <div style={{ fontSize: 11, color: C.sub, fontWeight: 700 }}>POR PAGAR</div>
+                <div style={{ fontWeight: 800, color: C.orange }}>{CLP(statement.porPagar)}</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 12, overflowX: "auto" }}>
+              {STATEMENT_TABS.map(([id, label]) => (
+                <button key={id} onClick={() => setStatTab(id)} style={{ flexShrink: 0, background: statTab === id ? C.teal : C.card, border: `1px solid ${statTab === id ? C.teal : C.line}`, color: statTab === id ? "#fff" : C.sub, padding: "9px 16px", borderRadius: 20, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{label}</button>
+              ))}
+            </div>
+            {statementList.length === 0 ? (
+              <div style={{ background: C.card2, borderRadius: 14, padding: 20, textAlign: "center", color: C.sub }}>Sin movimientos en este período.</div>
+            ) : statementList.map((m) => (
+              <MovRow key={m.id} m={m} acc={shared.acc} onDelete={shared.removeMovement} onOpen={(mov) => shared.setModal({ type: "movementDetail", movement: mov })} />
+            ))}
+          </div>
         </>
       ) : isCredit ? (
         <>
@@ -200,10 +272,16 @@ export function AccountDetail({ shared, accountId, close }) {
         </div>
       )}
 
-      <div style={{ fontWeight: 700, marginBottom: 10 }}>Movimientos</div>
-      {movs.length === 0 ? (
-        <div style={{ background: C.card2, borderRadius: 14, padding: 20, textAlign: "center", color: C.sub }}>Sin movimientos en esta cuenta.</div>
-      ) : movs.map((m) => <MovRow key={m.id} m={m} acc={shared.acc} onDelete={shared.removeMovement} />)}
+      {/* Para tarjetas, "Estado de cuenta" (arriba) ya muestra los movimientos
+          filtrados por período — no repetir la lista plana. */}
+      {!isCard && (
+        <>
+          <div style={{ fontWeight: 700, marginBottom: 10 }}>Movimientos</div>
+          {movs.length === 0 ? (
+            <div style={{ background: C.card2, borderRadius: 14, padding: 20, textAlign: "center", color: C.sub }}>Sin movimientos en esta cuenta.</div>
+          ) : movs.map((m) => <MovRow key={m.id} m={m} acc={shared.acc} onDelete={shared.removeMovement} onOpen={(mov) => shared.setModal({ type: "movementDetail", movement: mov })} />)}
+        </>
+      )}
 
       {/* eliminar solo si no tiene movimientos, con confirmación */}
       {movs.length === 0 && !confirmDel && (
