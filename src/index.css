@@ -1,3 +1,33 @@
+/* Paleta por tema. El JS pone data-theme="dark|light" en <html>. */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --mc-bg: #05070a;
+  --mc-bg2: #0a0e14;
+  --mc-card: #141920;
+  --mc-card2: #1b222c;
+  --mc-line: #232b36;
+  --mc-txt: #f2f5f8;
+  --mc-sub: #8b95a3;
+  --mc-faint: #5a6473;
+  --mc-frame: #000000;
+  --mc-bar: rgba(10, 14, 20, 0.92);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --mc-bg: #f4f5f7;
+  --mc-bg2: #ffffff;
+  --mc-card: #ffffff;
+  --mc-card2: #eef0f4;
+  --mc-line: #e2e5ec;
+  --mc-txt: #10131a;
+  --mc-sub: #6b7280;
+  --mc-faint: #9aa1ad;
+  --mc-frame: #e4e6eb;
+  --mc-bar: rgba(255, 255, 255, 0.92);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -10,5 +40,5 @@ body,
 }
 
 body {
-  color-scheme: dark;
+  background: var(--mc-frame);
 }

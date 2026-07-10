@@ -14,7 +14,7 @@ export default function Cuentas({ accounts, engine, setModal }) {
         <button onClick={() => setModal({ type: "newAccount" })} style={{ width: 40, height: 40, borderRadius: 20, background: C.tealSoft, border: `1px solid ${C.tealDim}`, color: C.green, fontSize: 22, cursor: "pointer" }}>+</button>
       </div>
 
-      <div style={{ borderRadius: 24, padding: 20, background: `linear-gradient(150deg,${C.tealDim},${C.blue})`, marginBottom: 20 }}>
+      <div style={{ borderRadius: 24, padding: 20, color: "#fff", background: `linear-gradient(150deg,${C.tealDim},${C.blue})`, marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
           <span style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,.15)", display: "grid", placeItems: "center" }}>🗓</span>
           <span style={{ background: "rgba(255,255,255,.15)", padding: "4px 12px", borderRadius: 12, fontSize: 13, fontWeight: 700 }}>{accounts.length} cuentas</span>

@@ -57,6 +57,14 @@ const FAB_ACTIONS = [
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = cargando, null = sin sesión
+  const [theme, setThemeState] = useState(() => localStorage.getItem("micuadra_theme") || "dark");
+
+  // aplica el tema al <html> (las variables CSS viven en index.css)
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("micuadra_theme", theme);
+  }, [theme]);
+  const setTheme = (t) => setThemeState(t);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -66,10 +74,10 @@ export default function App() {
 
   if (session === undefined) return <div style={{ minHeight: "100svh", background: C.bg }} />;
   if (!session) return <Auth />;
-  return <Main session={session} />;
+  return <Main session={session} theme={theme} setTheme={setTheme} />;
 }
 
-function Main({ session }) {
+function Main({ session, theme, setTheme }) {
   const userId = session.user.id;
   const [tab, setTab] = useState("inicio");
   const [viewMonth, setViewMonth] = useState(todayKey());
@@ -154,13 +162,13 @@ function Main({ session }) {
     addAccount, deleteAccount, addMovements, addMovement, deleteMovement, addCategory, deleteCategory,
     setBudget, addScheduled, deleteScheduled, seedCategories,
     registerCardPurchase, payCard, payCredit, payLine, transfer, pulseAdjust, confirmScheduled, removeMovement,
-    setModal, notify,
+    setModal, notify, theme, setTheme,
   };
 
   const loading = loadingAcc || loadingMov;
 
   return (
-    <div style={{ minHeight: "100svh", background: "#000", display: "flex", justifyContent: "center", fontFamily: "-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif" }}>
+    <div style={{ minHeight: "100svh", background: C.frame, display: "flex", justifyContent: "center", fontFamily: "-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif" }}>
       <div style={{ width: "100%", maxWidth: 430, background: C.bg, color: C.txt, minHeight: "100svh", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <div style={{ flex: 1, overflowY: "auto", paddingBottom: 120, paddingTop: 10 }}>
           {loading ? (
@@ -194,7 +202,7 @@ function Main({ session }) {
         {/* tab bar + botón FAB */}
         <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 45 }}>
           <button onClick={() => setFabOpen((v) => !v)} style={{ position: "absolute", right: 20, bottom: 78, width: 62, height: 62, borderRadius: 31, border: "none", background: `linear-gradient(140deg,${C.teal},${C.blue})`, color: "#fff", fontSize: 30, boxShadow: "0 8px 24px rgba(0,0,0,.5)", transform: fabOpen ? "rotate(45deg)" : "none", transition: ".2s", zIndex: 50, cursor: "pointer" }}>+</button>
-          <div style={{ background: "rgba(10,14,20,.92)", backdropFilter: "blur(20px)", borderTop: `1px solid ${C.line}`, display: "flex", padding: "10px 6px 18px" }}>
+          <div style={{ background: C.bar, backdropFilter: "blur(20px)", borderTop: `1px solid ${C.line}`, display: "flex", padding: "10px 6px 18px" }}>
             {TABS.map(({ id, label, icon }) => (
               <button key={id} onClick={() => setTab(id)} style={{ flex: 1, background: "none", border: "none", color: tab === id ? C.teal : C.sub, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
                 <span style={{ fontSize: 20 }}>{icon}</span>

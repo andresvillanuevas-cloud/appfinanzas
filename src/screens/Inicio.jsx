@@ -14,7 +14,7 @@ export default function Inicio({ engine, monthStats, accounts, movements, acc, s
       <h1 style={{ textAlign: "center", fontSize: 17, margin: "4px 0 16px" }}>Inicio</h1>
 
       {/* hero */}
-      <div style={{ borderRadius: 24, padding: 20, background: `linear-gradient(150deg,${C.tealDim},${C.blue})`, marginBottom: 14 }}>
+      <div style={{ borderRadius: 24, padding: 20, color: "#fff", background: `linear-gradient(150deg,${C.tealDim},${C.blue})`, marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, opacity: 0.85 }}>🗓 DISPONIBLE DEL MES</span>
           <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.8 }}>CLP</span>

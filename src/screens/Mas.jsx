@@ -3,7 +3,7 @@ import { C } from "../lib/theme";
 import { Card } from "../components/ui";
 import { exportCSV, exportXLSX } from "../lib/export";
 
-export default function Mas({ session, accounts = [], categories = [], movements = [], scheduled = [], engine, setModal, notify }) {
+export default function Mas({ session, accounts = [], categories = [], movements = [], scheduled = [], engine, setModal, notify, theme, setTheme }) {
   const data = { accounts, categories, movements, engine };
   const doExport = (fn, label) => {
     if (!movements.length) { notify?.("Aún no hay movimientos para exportar"); return; }
@@ -14,13 +14,14 @@ export default function Mas({ session, accounts = [], categories = [], movements
     ["🗓", "Programados", `${scheduled.length} activos · no tocan saldo`, () => setModal({ type: "scheduled" })],
     ["🏷️", "Categorías", `${categories.length} activas`, () => setModal({ type: "categories" })],
     ["📊", "Pulso", "Esperado vs Real", () => setModal({ type: "pulse" })],
+    ["📈", "Tendencia", "Ingresos y gastos en el tiempo", () => setModal({ type: "tendencia" })],
     ["📄", "Exportar a Excel (.xlsx)", "Respaldo con movimientos y cuentas", () => doExport(exportXLSX, "Excel")],
     ["📤", "Exportar a CSV", "Abre en Excel con tildes", () => doExport(exportCSV, "CSV")],
     ["🌎", "Moneda principal", "CLP · Peso Chileno", null],
   ];
   return (
     <div style={{ padding: "6px 16px" }}>
-      <div style={{ borderRadius: 24, padding: 20, background: `linear-gradient(150deg,${C.tealDim},${C.blue})`, marginBottom: 16 }}>
+      <div style={{ borderRadius: 24, padding: 20, marginBottom: 16, color: "#fff", background: `linear-gradient(150deg,${C.tealDim},${C.blue})` }}>
         <div style={{ fontSize: 32, fontWeight: 800, marginBottom: 2 }}>Centro de control</div>
         <div style={{ opacity: 0.8, fontSize: 13, marginBottom: 16 }}>{session?.user?.email}</div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -40,6 +41,20 @@ export default function Mas({ session, accounts = [], categories = [], movements
             {fn && <span style={{ color: C.faint }}>›</span>}
           </div>
         ))}
+      </Card>
+
+      {/* toggle de tema claro/oscuro */}
+      <Card style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+        <span style={{ width: 40, height: 40, borderRadius: 12, background: C.card2, display: "grid", placeItems: "center", fontSize: 18 }}>{theme === "light" ? "☀️" : "🌙"}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700 }}>Apariencia</div>
+          <div style={{ color: C.sub, fontSize: 13 }}>Tema {theme === "light" ? "claro" : "oscuro"}</div>
+        </div>
+        <div style={{ display: "flex", background: C.card2, borderRadius: 12, padding: 3 }}>
+          {[["dark", "🌙"], ["light", "☀️"]].map(([id, ic]) => (
+            <button key={id} onClick={() => setTheme(id)} style={{ border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 15, cursor: "pointer", background: theme === id ? C.teal : "transparent", color: theme === id ? "#fff" : C.sub }}>{ic}</button>
+          ))}
+        </div>
       </Card>
 
       <button

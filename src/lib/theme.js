@@ -1,10 +1,19 @@
-// Paleta y helpers compartidos, tomados tal cual del prototipo cuadra.jsx.
+// Paleta compartida (del prototipo cuadra.jsx).
+// Los NEUTROS son variables CSS para soportar modo claro/oscuro (definidas en
+// index.css según [data-theme]). Los ACENTOS quedan como hex literal: se usan
+// como color de cuentas/categorías guardado en la DB, así que no pueden ser var().
 export const C = {
-  bg: "#05070a",
-  bg2: "#0a0e14",
-  card: "#141920",
-  card2: "#1b222c",
-  line: "#232b36",
+  bg: "var(--mc-bg)",
+  bg2: "var(--mc-bg2)",
+  card: "var(--mc-card)",
+  card2: "var(--mc-card2)",
+  line: "var(--mc-line)",
+  txt: "var(--mc-txt)",
+  sub: "var(--mc-sub)",
+  faint: "var(--mc-faint)",
+  frame: "var(--mc-frame)", // letterbox alrededor del frame móvil
+  bar: "var(--mc-bar)",     // barra inferior (tab bar)
+  // acentos: iguales en ambos temas
   teal: "#1a8a6f",
   tealDim: "#12564a",
   tealSoft: "rgba(26,138,111,.16)",
@@ -17,9 +26,6 @@ export const C = {
   blueSoft: "rgba(63,127,224,.16)",
   violet: "#6c5ce7",
   violetSoft: "rgba(108,92,231,.16)",
-  txt: "#f2f5f8",
-  sub: "#8b95a3",
-  faint: "#5a6473",
 };
 
 export const CLP = (n) =>

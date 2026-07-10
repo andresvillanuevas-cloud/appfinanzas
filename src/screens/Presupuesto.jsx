@@ -18,7 +18,7 @@ export default function Presupuesto({ categories, budgets, viewMonth, setViewMon
         <MonthNav value={viewMonth} onChange={setViewMonth} />
       </div>
 
-      <div style={{ borderRadius: 24, padding: 20, background: `linear-gradient(150deg,${C.tealDim},${C.blue})`, marginBottom: 16 }}>
+      <div style={{ borderRadius: 24, padding: 20, color: "#fff", background: `linear-gradient(150deg,${C.tealDim},${C.blue})`, marginBottom: 16 }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, opacity: 0.85, marginBottom: 6 }}>📊 PLAN MENSUAL</div>
         <div style={{ fontSize: 14, opacity: 0.85 }}>Por asignar (según ingresos del mes)</div>
         <div style={{ fontSize: 40, fontWeight: 800, marginBottom: 14, color: porAsignar < 0 ? "#ffd7dc" : "#fff" }}>{CLP(porAsignar)}</div>
