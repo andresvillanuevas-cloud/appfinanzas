@@ -20,6 +20,7 @@ import { NewAccount, AccountDetail } from "./components/AccountModals";
 import { QuickAdd, CardPurchase, PayCard, PayCredit, PayLine, Transfer } from "./components/MovementModals";
 import { BudgetAssign, Categories } from "./components/BudgetModals";
 import { Pulse, Scheduled } from "./components/PulseScheduled";
+import { Tendencia } from "./components/Tendencia";
 
 const TABS = [
   { id: "inicio", label: "Inicio", icon: "🏠" },
@@ -43,6 +44,7 @@ function Modal({ shared, modal, close }) {
   if (t === "budgetAssign") return <BudgetAssign shared={shared} categoryId={modal.categoryId} close={close} />;
   if (t === "pulse") return <Pulse shared={shared} close={close} />;
   if (t === "scheduled") return <Scheduled shared={shared} close={close} />;
+  if (t === "tendencia") return <Tendencia shared={shared} close={close} />;
   return null;
 }
 
