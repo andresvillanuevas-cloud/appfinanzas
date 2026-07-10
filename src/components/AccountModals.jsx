@@ -110,6 +110,18 @@ export function AccountDetail({ shared, accountId, close }) {
   const cupoDisp = isCard ? (a.cupo || 0) - facturar : 0;
   const uso = isCard && a.cupo ? Math.round((facturar / a.cupo) * 100) : 0;
 
+  // Compras en cuotas "en curso": las cuotas que ya se pagaron ANTES de
+  // registrar la compra (1..startIndex-1) no existen como movimientos; se
+  // reconstruyen para mostrarlas como historial. Se agrupan por purchaseGroup.
+  const comprasEnCurso = isCard ? Object.values(
+    movs.filter((m) => m.kind === "cuotaTC" && m.purchaseGroup).reduce((acc, m) => {
+      const g = (acc[m.purchaseGroup] ||= { group: m.purchaseGroup, merchant: m.merchant, total: m.cuotasTotal, minIdx: m.cuotaIndex, maxIdx: m.cuotaIndex, perAmount: m.amount });
+      g.minIdx = Math.min(g.minIdx, m.cuotaIndex);
+      if (m.cuotaIndex > g.maxIdx) { g.maxIdx = m.cuotaIndex; g.perAmount = m.amount; } // la última cuota lleva el "per" base (sin remanente)
+      return acc;
+    }, {})
+  ).filter((g) => g.minIdx > 1) : [];
+
   const del = async () => {
     const ok = await shared.deleteAccount(accountId);
     if (ok) {
@@ -164,6 +176,28 @@ export function AccountDetail({ shared, accountId, close }) {
             </>
           );
         })()
+      )}
+
+      {comprasEnCurso.length > 0 && (
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>Cuotas ya pagadas</div>
+          <div style={{ color: C.sub, fontSize: 12, marginBottom: 10 }}>De compras que registraste ya en curso (antes no tocaron esta app).</div>
+          {comprasEnCurso.map((p) => (
+            <div key={p.group} style={{ background: C.card, borderRadius: 14, padding: 14, marginBottom: 8, border: `1px solid ${C.line}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontWeight: 700 }}>{p.merchant}</span>
+                <span style={{ color: C.sub, fontSize: 13 }}>{p.total} cuotas</span>
+              </div>
+              {Array.from({ length: p.minIdx - 1 }).map((_, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: C.faint, padding: "3px 0" }}>
+                  <span>Cuota {i + 1}/{p.total} · ya pagada</span>
+                  <span>{CLP(p.perAmount)}</span>
+                </div>
+              ))}
+              <div style={{ fontSize: 12, color: C.green, fontWeight: 700, marginTop: 6 }}>✓ {p.minIdx - 1} cuota{p.minIdx - 1 > 1 ? "s" : ""} pagada{p.minIdx - 1 > 1 ? "s" : ""} antes de registrar</div>
+            </div>
+          ))}
+        </div>
       )}
 
       <div style={{ fontWeight: 700, marginBottom: 10 }}>Movimientos</div>

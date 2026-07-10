@@ -139,11 +139,16 @@ function Main({ session, theme, setTheme }) {
     const mov = buildPulseAdjustment({ accountId, diff, categoryId: null, month: todayKey() });
     if (mov) { addMovements(mov); notify("Diferencia registrada (trazable)"); }
   };
-  // Programado: recién al confirmar se crea el movimiento y se quita de la lista
+  // Programado: al confirmar se crea el movimiento. Si es único se quita de la
+  // lista; si es recurrente (mensual/semanal) queda para confirmarlo de nuevo.
   const confirmScheduled = (s) => {
     addMovements(buildScheduledMovement(s, todayKey()));
-    deleteScheduled(s.id);
-    notify("Confirmado — ahora toca el saldo");
+    if (s.frequency === "unico") {
+      deleteScheduled(s.id);
+      notify("Confirmado — ahora toca el saldo");
+    } else {
+      notify("Confirmado — se repite, sigue en la lista");
+    }
   };
   // Borrar un movimiento. Si es una cuota de una compra TC, borra la compra
   // completa (todas sus cuotas) para no dejar una compra a medias.

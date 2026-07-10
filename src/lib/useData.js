@@ -259,11 +259,11 @@ export function useBudgets(userId, notify) {
 // ---------- scheduled ----------
 const scheduledFromRow = (r) => ({
   id: r.id, name: r.name, kind: r.kind, amount: Number(r.amount) || 0,
-  accountId: r.account_id, day: r.day,
+  accountId: r.account_id, day: r.day, frequency: r.frequency || "mensual",
 });
 const scheduledToRow = (s, userId) => ({
   id: s.id, user_id: userId, name: s.name, kind: s.kind, amount: s.amount,
-  account_id: s.accountId || null, day: s.day || null,
+  account_id: s.accountId || null, day: s.day || null, frequency: s.frequency || "mensual",
 });
 
 export function useScheduled(userId, notify) {

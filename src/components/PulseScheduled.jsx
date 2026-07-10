@@ -45,17 +45,20 @@ export function Pulse({ shared, close }) {
   );
 }
 
+const FREQ_LABEL = { unico: "Una vez", mensual: "Cada mes", semanal: "Cada semana" };
+
 // ---- Programados: vista futura; no tocan saldo hasta confirmar ----
 export function Scheduled({ shared, close }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [kind, setKind] = useState("ingreso");
+  const [frequency, setFrequency] = useState("mensual");
   const money = shared.accounts.filter((a) => a.type !== "tarjeta" && a.type !== "credito");
   const [accountId, setAccountId] = useState(money[0]?.id || "");
 
   const add = () => {
     if (!name.trim() || !amount) return;
-    shared.addScheduled({ name: name.trim(), amount: Number(amount), kind, accountId });
+    shared.addScheduled({ name: name.trim(), amount: Number(amount), kind, accountId, frequency });
     setName(""); setAmount("");
     shared.notify("Programado agregado");
   };
@@ -75,6 +78,13 @@ export function Scheduled({ shared, close }) {
         </div>
         <div style={{ flex: 1 }}><Field label="Monto"><input style={input} type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" /></Field></div>
       </div>
+      <Field label="Se repite">
+        <div style={{ display: "flex", gap: 6 }}>
+          {[["unico", "Una vez"], ["mensual", "Cada mes"], ["semanal", "Cada semana"]].map(([id, l]) => (
+            <button key={id} onClick={() => setFrequency(id)} style={{ flex: 1, background: frequency === id ? C.teal : C.card, border: `1px solid ${frequency === id ? C.teal : C.line}`, color: frequency === id ? "#fff" : C.sub, padding: "12px 0", borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{l}</button>
+          ))}
+        </div>
+      </Field>
       <Field label="Cuenta">
         <select style={{ ...input, appearance: "none" }} value={accountId} onChange={(e) => setAccountId(e.target.value)}>
           {money.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -87,8 +97,12 @@ export function Scheduled({ shared, close }) {
           {shared.scheduled.map((s) => (
             <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, background: C.card, borderRadius: 14, padding: 14, marginBottom: 8, border: `1px solid ${C.line}` }}>
               <span style={{ width: 38, height: 38, borderRadius: 11, background: s.kind === "ingreso" ? C.tealSoft : C.redSoft, color: s.kind === "ingreso" ? C.green : C.red, display: "grid", placeItems: "center" }}>{s.kind === "ingreso" ? "↓" : "↑"}</span>
-              <div style={{ flex: 1 }}><div style={{ fontWeight: 700 }}>{s.name}</div><div style={{ fontSize: 12, color: C.orange }}>Próximo · programado · {CLP(s.amount)}</div></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700 }}>{s.name}</div>
+                <div style={{ fontSize: 12, color: C.orange }}>{FREQ_LABEL[s.frequency] || "Cada mes"} · {CLP(s.amount)}</div>
+              </div>
               <button onClick={() => shared.confirmScheduled(s)} style={{ background: C.teal, border: "none", color: "#fff", padding: "9px 14px", borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Confirmar</button>
+              <button onClick={() => shared.deleteScheduled(s.id)} style={{ background: "none", border: "none", color: C.faint, fontSize: 16, cursor: "pointer", padding: "0 2px" }}>🗑</button>
             </div>
           ))}
         </>
