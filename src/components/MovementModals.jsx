@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { C, CLP, keyToLabel } from "../lib/theme";
-import { todayKey, addMonths, validateLinePayment } from "../engine/engine";
-import { Sheet, Field, input, primaryBtn, Empty, MiniStat } from "./ui";
+import { todayKey, addMonths, validateLinePayment, todayDateStr, dateStrToMonth, dateStrToTs } from "../engine/engine";
+import { Sheet, Field, DateField, input, primaryBtn, Empty, MiniStat } from "./ui";
 
 const RowSelect = ({ label, value, onClick }) => (
   <button onClick={onClick} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: C.card2, border: `1px solid ${C.line}`, borderRadius: 14, padding: "13px 16px", color: C.txt, marginBottom: 12, cursor: "pointer" }}>
@@ -19,6 +19,7 @@ export function QuickAdd({ shared, close }) {
   const [categoryId, setCategoryId] = useState("");
   const [merchant, setMerchant] = useState("");
   const [status, setStatus] = useState("confirmado");
+  const [date, setDate] = useState(todayDateStr());
 
   // NLP simple: "Uber 8.500" → monto + comercio
   useEffect(() => {
@@ -32,7 +33,7 @@ export function QuickAdd({ shared, close }) {
   const moneyAcc = shared.accounts.filter((a) => a.type !== "tarjeta" && a.type !== "credito");
   const valid = amount && Number(amount) > 0 && accountId;
   const save = () => {
-    shared.addMovement({ kind: type, amount: Number(amount), accountId, categoryId: categoryId || null, merchant: merchant || (type === "gasto" ? "Gasto" : "Ingreso"), month: todayKey(), status });
+    shared.addMovement({ kind: type, amount: Number(amount), accountId, categoryId: categoryId || null, merchant: merchant || (type === "gasto" ? "Gasto" : "Ingreso"), month: dateStrToMonth(date), ts: dateStrToTs(date), status });
     shared.notify(type === "gasto" ? "Gasto registrado" : "Ingreso registrado");
     close();
   };
@@ -42,6 +43,7 @@ export function QuickAdd({ shared, close }) {
       <Field label="Anota el movimiento">
         <input style={input} value={raw} onChange={(e) => setRaw(e.target.value)} placeholder="Ej: Uber 8.500" autoFocus />
       </Field>
+      <DateField value={date} onChange={setDate} />
       <div style={{ background: C.card, borderRadius: 16, padding: 16, border: `1px solid ${C.line}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontWeight: 700 }}>La app entendió</span>
@@ -92,7 +94,8 @@ export function CardPurchase({ shared, close }) {
   const [total, setTotal] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [cuotas, setCuotas] = useState(1);
-  const [firstNow, setFirstNow] = useState(true);
+  const [date, setDate] = useState(todayDateStr()); // fecha real de la compra (registro)
+  const [firstNow, setFirstNow] = useState(true); // primera cuota se factura ahora o el próximo mes
   const [enCurso, setEnCurso] = useState(false);
   const [curIndex, setCurIndex] = useState(1); // próxima cuota a facturar
   const [note, setNote] = useState("");
@@ -109,9 +112,9 @@ export function CardPurchase({ shared, close }) {
   if (!cards.length) return <Sheet title="Gasto con tarjeta" close={close}><Empty icon="💳" title="No tienes tarjetas" sub="Crea una tarjeta de crédito primero desde Cuentas." /></Sheet>;
 
   const valid = total && Number(total) > 0 && cardId && montoRestante <= cupoDisp && startIndex <= cuotas;
+  const firstMonth = firstNow ? todayKey() : addMonths(todayKey(), 1);
   const save = () => {
-    const firstMonth = firstNow ? todayKey() : addMonths(todayKey(), 1);
-    shared.registerCardPurchase({ cardId, merchant: merchant || "Compra", categoryId: categoryId || null, total: Number(total), cuotas, firstMonth, note, startIndex });
+    shared.registerCardPurchase({ cardId, merchant: merchant || "Compra", categoryId: categoryId || null, total: Number(total), cuotas, firstMonth, note, startIndex, ts: dateStrToTs(date) });
     close();
   };
 
@@ -161,6 +164,7 @@ export function CardPurchase({ shared, close }) {
           <button onClick={() => setFirstNow(false)} style={{ flex: 1, background: !firstNow ? C.tealSoft : C.card, border: `1px solid ${!firstNow ? C.teal : C.line}`, color: !firstNow ? C.green : C.sub, padding: "12px 0", borderRadius: 12, fontWeight: 700, cursor: "pointer" }}>Diferida (+1 mes)</button>
         </div>
       </Field>
+      <DateField label="Fecha de compra (cuándo la hiciste)" value={date} onChange={setDate} />
 
       {/* compra ya en curso */}
       <Field label="¿Es una compra ya en curso?">
@@ -210,6 +214,7 @@ export function PayCard({ shared, close }) {
   const [cardId, setCardId] = useState(cards[0]?.id || "");
   const [fromId, setFromId] = useState(money[0]?.id || "");
   const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(todayDateStr());
   const facturar = shared.engine.cardUsed[cardId] || 0;
   const real = shared.engine.bal[fromId] || 0;
   const disp = shared.engine.avail[fromId] || 0; // real + línea disponible
@@ -220,7 +225,7 @@ export function PayCard({ shared, close }) {
   const usaLinea = n > real; // parte del pago sale de la línea
   const lineaUsada = usaLinea ? Math.min(n - real, fromAcc?.line || 0) : 0;
   const valid = amount && n > 0 && n <= disp && fromId;
-  const save = () => { shared.payCard({ cardId, fromId, amount: n }); close(); };
+  const save = () => { shared.payCard({ cardId, fromId, amount: n, month: dateStrToMonth(date), ts: dateStrToTs(date) }); close(); };
 
   return (
     <Sheet title="Pagar tarjeta de crédito" close={close} footer={<button disabled={!valid} onClick={save} style={primaryBtn(!valid)}>{valid || !amount ? "Registrar pago" : "Excede saldo + línea"}</button>}>
@@ -244,6 +249,7 @@ export function PayCard({ shared, close }) {
         </select>
       </Field>
       <Field label="Monto"><input style={input} type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={String(facturar || 0)} /></Field>
+      <DateField value={date} onChange={setDate} />
       {usaLinea && n <= disp && (
         <div style={{ background: C.blueSoft, color: C.blue, borderRadius: 12, padding: 12, fontSize: 13 }}>ℹ Usarás {CLP(lineaUsada)} de la línea de {fromAcc?.name}. El saldo quedará en {CLP(real - n)} (línea usada). Podrás pagar esa línea después con dinero real.</div>
       )}
@@ -260,6 +266,7 @@ export function PayCredit({ shared, close }) {
   const [fromId, setFromId] = useState(money[0]?.id || "");
   const credit = shared.accounts.find((a) => a.id === creditId);
   const [amount, setAmount] = useState(credit?.cuotaValue ? String(credit.cuotaValue) : "");
+  const [date, setDate] = useState(todayDateStr());
   const real = shared.engine.bal[fromId] || 0;
   const disp = shared.engine.avail[fromId] || 0;
   const pend = shared.engine.debt[creditId] || 0;
@@ -270,7 +277,7 @@ export function PayCredit({ shared, close }) {
   const usaLinea = n > real;
   const lineaUsada = usaLinea ? Math.min(n - real, fromAcc?.line || 0) : 0;
   const valid = amount && n > 0 && n <= disp && fromId;
-  const save = () => { shared.payCredit({ creditId, fromId, amount: n }); close(); };
+  const save = () => { shared.payCredit({ creditId, fromId, amount: n, month: dateStrToMonth(date), ts: dateStrToTs(date) }); close(); };
 
   return (
     <Sheet title="Pagar crédito" close={close} footer={<button disabled={!valid} onClick={save} style={primaryBtn(!valid)}>{valid || !amount ? "Registrar pago" : "Excede saldo + línea"}</button>}>
@@ -295,6 +302,7 @@ export function PayCredit({ shared, close }) {
         </select>
       </Field>
       <Field label="Monto"><input style={input} type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={String(credit?.cuotaValue || 0)} /></Field>
+      <DateField value={date} onChange={setDate} />
       {usaLinea && n <= disp && (
         <div style={{ background: C.blueSoft, color: C.blue, borderRadius: 12, padding: 12, fontSize: 13 }}>ℹ Usarás {CLP(lineaUsada)} de la línea de {fromAcc?.name}. El saldo quedará en {CLP(real - n)} (línea usada).</div>
       )}
@@ -312,13 +320,14 @@ export function PayLine({ shared, close }) {
   const [fromId, setFromId] = useState(others[0]?.id || "");
   const usada = shared.engine.lineUsed[bankId] || 0;
   const [amount, setAmount] = useState(usada ? String(usada) : "");
+  const [date, setDate] = useState(todayDateStr());
   const real = shared.engine.bal[fromId] || 0; // pagar línea SOLO con dinero real
 
   if (!banks.length) return <Sheet title="Pagar línea" close={close}><Empty icon="🏦" title="No hay línea usada" sub="Cuando pagues una tarjeta o crédito con la línea de un banco, aquí podrás devolver ese dinero." /></Sheet>;
   const n = Number(amount) || 0;
   const v = validateLinePayment(shared.engine, bankId, fromId, n);
   const valid = amount && v.ok;
-  const save = () => { shared.payLine({ bankId, fromId, amount: n }); close(); };
+  const save = () => { shared.payLine({ bankId, fromId, amount: n, month: dateStrToMonth(date), ts: dateStrToTs(date) }); close(); };
 
   return (
     <Sheet title="Pagar línea usada" close={close} footer={<button disabled={!valid} onClick={save} style={primaryBtn(!valid)}>{valid || !amount ? "Registrar pago" : "Revisa monto y origen"}</button>}>
@@ -338,6 +347,7 @@ export function PayLine({ shared, close }) {
         </select>
       </Field>
       <Field label="Monto"><input style={input} type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={String(usada)} /></Field>
+      <DateField value={date} onChange={setDate} />
       {n > real && <div style={{ background: C.redSoft, color: C.red, borderRadius: 12, padding: 12, fontSize: 13 }}>⚠ La línea se paga con dinero real. {shared.acc(fromId)?.name} solo tiene {CLP(real)}.</div>}
       {n > usada && <div style={{ background: C.redSoft, color: C.red, borderRadius: 12, padding: 12, fontSize: 13 }}>⚠ El monto supera la línea usada ({CLP(usada)}).</div>}
     </Sheet>
@@ -352,6 +362,7 @@ export function Transfer({ shared, close }) {
   const [fromId, setFromId] = useState(money[0]?.id || "");
   const [toId, setToId] = useState(money[1]?.id || "");
   const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(todayDateStr());
   const real = shared.engine.bal[fromId] || 0;
   const disp = shared.engine.avail[fromId] || 0;
   const fromAcc = shared.accounts.find((a) => a.id === fromId);
@@ -361,7 +372,7 @@ export function Transfer({ shared, close }) {
   const usaLinea = n > real;
   const lineaUsada = usaLinea ? Math.min(n - real, fromAcc?.line || 0) : 0;
   const valid = amount && n > 0 && n <= disp && fromId && toId && fromId !== toId;
-  const save = () => { shared.transfer({ fromId, toId, amount: n }); close(); };
+  const save = () => { shared.transfer({ fromId, toId, amount: n, month: dateStrToMonth(date), ts: dateStrToTs(date) }); close(); };
 
   return (
     <Sheet title="Transferencia entre cuentas" close={close} footer={<button disabled={!valid} onClick={save} style={primaryBtn(!valid)}>Transferir</button>}>
@@ -385,6 +396,7 @@ export function Transfer({ shared, close }) {
         </select>
       </Field>
       <Field label="Monto"><input style={input} type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" /></Field>
+      <DateField value={date} onChange={setDate} />
       {fromId === toId && <div style={{ background: C.redSoft, color: C.red, borderRadius: 12, padding: 12, fontSize: 13 }}>⚠ Elige cuentas distintas.</div>}
       {usaLinea && n <= disp && (
         <div style={{ background: C.blueSoft, color: C.blue, borderRadius: 12, padding: 12, fontSize: 13 }}>ℹ Usarás {CLP(lineaUsada)} de la línea de {fromAcc?.name}. El saldo quedará en {CLP(real - n)} (línea usada).</div>

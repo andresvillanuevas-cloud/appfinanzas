@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { C, CLP, keyToLabel } from "../lib/theme";
-import { addMonths } from "../engine/engine";
+import { addMonths, todayDateStr } from "../engine/engine";
 
 /* Primitivas UI portadas del prototipo cuadra.jsx.
    Los SF Symbols de iOS (glifos 􀀀…) se reemplazan por emoji/unicode
@@ -99,6 +99,20 @@ export const Field = ({ label, children }) => (
     <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.5, color: C.sub, textTransform: "uppercase", marginBottom: 6 }}>{label}</div>
     {children}
   </div>
+);
+
+// Selector de fecha reutilizable: por defecto hoy, no permite futuro
+// (para eso están los Programados). value/onChange usan "YYYY-MM-DD".
+export const DateField = ({ label = "Fecha", value, onChange }) => (
+  <Field label={label}>
+    <input
+      type="date"
+      style={input}
+      value={value}
+      max={todayDateStr()}
+      onChange={(e) => e.target.value && onChange(e.target.value)}
+    />
+  </Field>
 );
 
 export const input = { width: "100%", boxSizing: "border-box", background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "13px 16px", color: C.txt, fontSize: 16 };

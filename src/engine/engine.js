@@ -25,6 +25,16 @@ export const addMonths = (key, n) => {
 
 export const todayKey = () => monthKey(new Date());
 
+// ---------- helpers de fecha exacta (para el selector de fecha en registros) ----------
+// "YYYY-MM-DD" en hora LOCAL (no toISOString, que usa UTC y puede correr el día).
+export const todayDateStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+export const dateStrToMonth = (dateStr) => dateStr.slice(0, 7);
+// mediodía local: evita que un cambio de huso horario corra la fecha al parsear.
+export const dateStrToTs = (dateStr) => new Date(`${dateStr}T12:00:00`).getTime();
+
 // UUID v4 real: los ids generados aquí se insertan tal cual en Postgres (columnas uuid)
 export const uid = () =>
   globalThis.crypto?.randomUUID
@@ -137,17 +147,18 @@ export function computeMonthStats(movements, month) {
 // Nota: el prototipo usaba floor (5.000/3 → 1.668+1.666+1.666); se cambió a
 // round para cumplir el caso de aceptación de CLAUDE.md (1.667+1.667+1.666).
 export function registerCardPurchase({
-  cardId, merchant, categoryId, total, cuotas, firstMonth, note, startIndex = 1,
+  cardId, merchant, categoryId, total, cuotas, firstMonth, note, startIndex = 1, ts,
 }) {
   const per = Math.round(total / cuotas);
   const rem = total - per * cuotas;
   const list = [];
   let created = 0;
   const group = uid(); // mismo grupo = misma compra
+  const baseTs = ts || Date.now();
   for (let i = startIndex - 1; i < cuotas; i++) {
     list.push({
       id: uid(),
-      ts: Date.now() + i,
+      ts: baseTs + i,
       kind: "cuotaTC",
       merchant,
       accountId: cardId,
@@ -168,23 +179,25 @@ export function registerCardPurchase({
 }
 
 // ---------- pagos (constructores puros de movimientos) ----------
-export const buildCardPayment = ({ cardId, fromId, amount, month }) => ({
-  id: uid(), ts: Date.now(), kind: "pagoTarjeta", cardId, fromId, amount,
+// `ts`/`month` son opcionales: permiten registrar con fecha pasada
+// (ej. "esto lo pagué ayer") en vez de siempre "ahora".
+export const buildCardPayment = ({ cardId, fromId, amount, month, ts }) => ({
+  id: uid(), ts: ts || Date.now(), kind: "pagoTarjeta", cardId, fromId, amount,
   month: month || todayKey(), status: "confirmado", merchant: "Pago tarjeta",
 });
 
-export const buildCreditPayment = ({ creditId, fromId, amount, month }) => ({
-  id: uid(), ts: Date.now(), kind: "pagoCredito", creditId, fromId, amount,
+export const buildCreditPayment = ({ creditId, fromId, amount, month, ts }) => ({
+  id: uid(), ts: ts || Date.now(), kind: "pagoCredito", creditId, fromId, amount,
   month: month || todayKey(), status: "confirmado", merchant: "Pago crédito",
 });
 
-export const buildLinePayment = ({ bankId, fromId, amount, month }) => ({
-  id: uid(), ts: Date.now(), kind: "pagoLinea", bankId, fromId, amount,
+export const buildLinePayment = ({ bankId, fromId, amount, month, ts }) => ({
+  id: uid(), ts: ts || Date.now(), kind: "pagoLinea", bankId, fromId, amount,
   month: month || todayKey(), status: "confirmado", merchant: "Pago línea",
 });
 
-export const buildTransfer = ({ fromId, toId, amount, month, note }) => ({
-  id: uid(), ts: Date.now(), kind: "transferencia", fromId, toId, amount,
+export const buildTransfer = ({ fromId, toId, amount, month, note, ts }) => ({
+  id: uid(), ts: ts || Date.now(), kind: "transferencia", fromId, toId, amount,
   month: month || todayKey(), status: "confirmado", merchant: "Transferencia", note,
 });
 
