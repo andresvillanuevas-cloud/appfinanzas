@@ -42,5 +42,7 @@ export const DEFAULT_CATEGORIES = [
 
   // Ingresos
   { name: "Sueldo", type: "ingreso", prioridad: "obligaciones", icon: "💰", color: C.green },
-  { name: "Otros ingresos", type: "ingreso", prioridad: "obligaciones", icon: "💵", color: C.green },
+  { name: "Mesada", type: "ingreso", prioridad: "obligaciones", icon: "🪙", color: C.green },
+  { name: "Negocios personales", type: "ingreso", prioridad: "obligaciones", icon: "💼", color: C.green },
+  { name: "Otros", type: "ingreso", prioridad: "obligaciones", icon: "💵", color: C.green },
 ];
