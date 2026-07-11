@@ -222,7 +222,15 @@ Dos vistas de REPORTE de solo lectura. No se tocó `computeBalances` ni ningún 
 - 6 tests nuevos (39/39 verdes): suma de 2 tarjetas en proyección consolidada; compra TC contada completa en su mes y ausente en meses siguientes; orden/agrupación/exclusiones.
 - Verificado e2e: proyección Jul/Ago/Sep $100k c/u (facturación distribuida) vs Gasto real Julio $373k con la compra TC completa en $300k y agosto en $0 (no distribuida). Drill-down muestra items en lectura.
 
-### Estado v1: FASES 0–5 COMPLETAS + revisión + categorías predefinidas + Fase 6 COMPLETA + selector de fecha + notas/proyección/estado de cuenta TC + proyección consolidada + gasto real + desplegado en Vercel. Pendiente: validar instalación PWA en un iPhone real (criterio 11).
+### Auditoría QA final + fixes menores (2026-07-10)
+Auditoría completa (5 bloques): build ok, 39/39 tests, sin secrets/console.log, **11/11 reglas de negocio cumplen**. Regla 11 (programados) verificada a nivel de DB: crear no inserta en `movements` ni cambia saldo; solo confirmar lo hace. Causa raíz resuelta por arquitectura (tablas `scheduled`/`movements` separadas; `computeBalances` solo recibe `movements`). Casos borde numéricos, flujos e2e y funciones nuevas: todo pasa.
+Se corrigieron los 3 hallazgos más relevantes (todos eran Menor, ninguno tocaba saldos):
+- **Dedup al confirmar programado recurrente**: si ya se confirmó ese programado en el mes actual (match por nombre+tipo+monto+cuenta+mes), la fila muestra "✓ Ya confirmado este mes" y el botón pide una segunda confirmación ("Ya lo registraste este mes. ¿Confirmar otra vez?") antes de crear otro movimiento. Evita doble-conteo accidental de sueldo/arriendo; el escape "Sí, de nuevo" permite el caso legítimo (bono).
+- **Gasto real**: nota visible aclarando que las compras en cuotas se cuentan en su mes de compra y que para compras "ya en curso" el mes es aproximado (el de registro).
+- **Hero de Cuentas**: "Esperado" = patrimonio + neto de movimientos pendientes; "Por confirmar" = ese neto (antes ambos mostraban el patrimonio duplicado).
+Hallazgos menores NO corregidos (documentados, no bloqueantes): programados no tienen campo de fecha (solo frecuencia); la proyección consolidada no puede excluir cuotas ya pagadas (no hay marca por-cuota); guard de borrar cuenta es solo-UI; CSV exporta transferencia con signo +.
+
+### Estado v1: LISTO PARA USO REAL. Fases 0–6 + reportes + auditoría QA (11/11 reglas) + fixes menores, desplegado en Vercel. Pendiente único: validar instalación PWA en un iPhone real (criterio 11 del brief).
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).

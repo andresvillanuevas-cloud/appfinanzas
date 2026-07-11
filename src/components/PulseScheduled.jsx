@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { C, CLP } from "../lib/theme";
+import { todayKey } from "../engine/engine";
 import { Sheet, Field, input, primaryBtn, Empty } from "./ui";
 
 // ---- Pulso: conciliación esperado vs real, cuenta por cuenta ----
@@ -53,8 +54,15 @@ export function Scheduled({ shared, close }) {
   const [amount, setAmount] = useState("");
   const [kind, setKind] = useState("ingreso");
   const [frequency, setFrequency] = useState("mensual");
+  const [confirmAgain, setConfirmAgain] = useState(null); // id del programado a re-confirmar
   const money = shared.accounts.filter((a) => a.type !== "tarjeta" && a.type !== "credito");
   const [accountId, setAccountId] = useState(money[0]?.id || "");
+
+  // ¿ya se confirmó este programado en el mes actual? (evita doble conteo)
+  const confirmadoEsteMes = (s) => shared.movements.some(
+    (m) => m.status === "confirmado" && m.month === todayKey()
+      && m.kind === s.kind && m.amount === s.amount && m.accountId === s.accountId && m.merchant === s.name
+  );
 
   const add = () => {
     if (!name.trim() || !amount) return;
@@ -94,17 +102,34 @@ export function Scheduled({ shared, close }) {
       {shared.scheduled.length > 0 && (
         <>
           <div style={{ fontWeight: 700, margin: "16px 0 10px" }}>Vista futura ({shared.scheduled.length})</div>
-          {shared.scheduled.map((s) => (
-            <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, background: C.card, borderRadius: 14, padding: 14, marginBottom: 8, border: `1px solid ${C.line}` }}>
-              <span style={{ width: 38, height: 38, borderRadius: 11, background: s.kind === "ingreso" ? C.tealSoft : C.redSoft, color: s.kind === "ingreso" ? C.green : C.red, display: "grid", placeItems: "center" }}>{s.kind === "ingreso" ? "↓" : "↑"}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700 }}>{s.name}</div>
-                <div style={{ fontSize: 12, color: C.orange }}>{FREQ_LABEL[s.frequency] || "Cada mes"} · {CLP(s.amount)}</div>
+          {shared.scheduled.map((s) => {
+            const yaEsteMes = confirmadoEsteMes(s);
+            const preguntando = confirmAgain === s.id;
+            return (
+              <div key={s.id} style={{ background: C.card, borderRadius: 14, marginBottom: 8, border: `1px solid ${C.line}`, overflow: "hidden" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 14 }}>
+                  <span style={{ width: 38, height: 38, borderRadius: 11, background: s.kind === "ingreso" ? C.tealSoft : C.redSoft, color: s.kind === "ingreso" ? C.green : C.red, display: "grid", placeItems: "center" }}>{s.kind === "ingreso" ? "↓" : "↑"}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700 }}>{s.name}</div>
+                    <div style={{ fontSize: 12, color: C.orange }}>{FREQ_LABEL[s.frequency] || "Cada mes"} · {CLP(s.amount)}</div>
+                    {yaEsteMes && <div style={{ fontSize: 11, color: C.green, fontWeight: 700, marginTop: 2 }}>✓ Ya confirmado este mes</div>}
+                  </div>
+                  <button
+                    onClick={() => (yaEsteMes ? setConfirmAgain(s.id) : shared.confirmScheduled(s))}
+                    style={{ background: yaEsteMes ? C.card2 : C.teal, border: yaEsteMes ? `1px solid ${C.line}` : "none", color: yaEsteMes ? C.sub : "#fff", padding: "9px 14px", borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+                  >Confirmar</button>
+                  <button onClick={() => shared.deleteScheduled(s.id)} style={{ background: "none", border: "none", color: C.faint, fontSize: 16, cursor: "pointer", padding: "0 2px" }}>🗑</button>
+                </div>
+                {preguntando && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: C.orangeSoft, borderTop: `1px solid ${C.line}` }}>
+                    <span style={{ flex: 1, fontSize: 13, color: C.orange, fontWeight: 700 }}>Ya lo registraste este mes. ¿Confirmar otra vez?</span>
+                    <button onClick={() => setConfirmAgain(null)} style={{ background: C.card2, border: `1px solid ${C.line}`, color: C.txt, padding: "8px 12px", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Cancelar</button>
+                    <button onClick={() => { shared.confirmScheduled(s); setConfirmAgain(null); }} style={{ background: C.orange, border: "none", color: "#fff", padding: "8px 12px", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Sí, de nuevo</button>
+                  </div>
+                )}
               </div>
-              <button onClick={() => shared.confirmScheduled(s)} style={{ background: C.teal, border: "none", color: "#fff", padding: "9px 14px", borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Confirmar</button>
-              <button onClick={() => shared.deleteScheduled(s.id)} style={{ background: "none", border: "none", color: C.faint, fontSize: 16, cursor: "pointer", padding: "0 2px" }}>🗑</button>
-            </div>
-          ))}
+            );
+          })}
         </>
       )}
     </Sheet>

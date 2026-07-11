@@ -10,6 +10,17 @@ export default function Cuentas({ accounts, engine, movements, setModal }) {
   ];
   // proyección consolidada de cuotas TC de todas las tarjetas (solo lectura)
   const proyeccion = projectedCardPaymentsAll(movements || []);
+
+  // "Por confirmar": efecto neto de los movimientos PENDIENTES sobre el patrimonio
+  // (ingreso pendiente suma, gasto pendiente resta). No toca el saldo real: es
+  // lo que cambiaría el patrimonio cuando confirmes esos pendientes.
+  const porConfirmar = (movements || []).reduce((s, m) => {
+    if (m.status !== "pendiente") return s;
+    if (m.kind === "ingreso") return s + m.amount;
+    if (m.kind === "gasto") return s - m.amount;
+    return s;
+  }, 0);
+  const esperado = engine.patrimonio + porConfirmar;
   return (
     <div style={{ padding: "6px 16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -26,10 +37,10 @@ export default function Cuentas({ accounts, engine, movements, setModal }) {
         <div style={{ fontSize: 40, fontWeight: 800, margin: "2px 0 14px" }}>{CLP(engine.patrimonio)}</div>
         <div style={{ display: "flex", gap: 10 }}>
           <div style={{ flex: 1, background: "rgba(255,255,255,.1)", borderRadius: 14, padding: "10px 14px" }}>
-            <div style={{ fontSize: 12, opacity: 0.8 }}>Esperado</div><div style={{ fontWeight: 700 }}>{CLP(engine.patrimonio)}</div>
+            <div style={{ fontSize: 12, opacity: 0.8 }}>Esperado</div><div style={{ fontWeight: 700 }}>{CLP(esperado)}</div>
           </div>
           <div style={{ flex: 1, background: "rgba(255,255,255,.1)", borderRadius: 14, padding: "10px 14px" }}>
-            <div style={{ fontSize: 12, opacity: 0.8 }}>Por confirmar</div><div style={{ fontWeight: 700 }}>{CLP(engine.patrimonio)}</div>
+            <div style={{ fontSize: 12, opacity: 0.8 }}>Por confirmar</div><div style={{ fontWeight: 700 }}>{porConfirmar >= 0 ? "+" : ""}{CLP(porConfirmar)}</div>
           </div>
         </div>
       </div>

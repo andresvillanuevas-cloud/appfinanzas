@@ -56,9 +56,12 @@ export function GastoReal({ shared, close }) {
         <MonthNav value={month} onChange={(m) => { setMonth(m); setOpenCat(null); }} />
       </div>
 
-      <div style={{ background: `linear-gradient(150deg,${C.tealDim},${C.blue})`, color: "#fff", borderRadius: 18, padding: 18, marginBottom: 16 }}>
+      <div style={{ background: `linear-gradient(150deg,${C.tealDim},${C.blue})`, color: "#fff", borderRadius: 18, padding: 18, marginBottom: 10 }}>
         <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.85, letterSpacing: 1 }}>TOTAL GASTADO</div>
         <div style={{ fontSize: 34, fontWeight: 800 }}>{CLP(total)}</div>
+      </div>
+      <div style={{ color: C.faint, fontSize: 11, marginBottom: 14, lineHeight: 1.4 }}>
+        Una compra en cuotas se cuenta completa en su mes de compra. Para compras registradas "ya en curso", el mes es aproximado (el de registro).
       </div>
 
       {cats.length === 0 ? (
