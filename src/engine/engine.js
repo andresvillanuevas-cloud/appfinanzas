@@ -291,3 +291,62 @@ export function cardStatement(movements, cardId, month) {
   const porPagar = confirmadas - abonado;
   return { compras, pagos, confirmadas, porConfirmar, abonado, porPagar };
 }
+
+// ---------- proyección CONSOLIDADA de cuotas TC (todas las tarjetas) ----------
+// Igual que projectedCardPayments pero sin filtrar por tarjeta: agrupa TODAS
+// las cuotas TC no pagadas por mes de facturación, desde `fromMonth`. Solo
+// lectura, no toca saldos ni cardUsed.
+export function projectedCardPaymentsAll(movements, fromMonth = todayKey()) {
+  const byMonth = {};
+  movements.forEach((m) => {
+    if (m.kind !== "cuotaTC" || m.paid) return;
+    if (m.month < fromMonth) return;
+    byMonth[m.month] = (byMonth[m.month] || 0) + m.amount;
+  });
+  return Object.entries(byMonth)
+    .filter(([, total]) => total > 0)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([month, total]) => ({ month, total }));
+}
+
+// ---------- gasto REAL por categoría (vista de reporte, solo lectura) ----------
+// Distinto de computeMonthStats/Presupuesto: aquí una compra TC se cuenta
+// COMPLETA en su mes de compra (no distribuida en cuotas). El "mes de compra"
+// es el mes del `ts` de la cuota más temprana del grupo (la fecha real de la
+// compra), con fallback al `month` de esa cuota si no hay ts.
+// Devuelve categorías (incl. "sin categoría") con su total y sus items, para
+// permitir el drill-down. No altera ningún cálculo existente.
+export function realExpenseByCategory(movements, month) {
+  const confirmed = (m) => m.status === "confirmado" || m.status === "cuadrado";
+  const cats = {}; // key -> { categoryId, total, items }
+  const add = (categoryId, total, item) => {
+    const k = categoryId || "sin";
+    (cats[k] ||= { categoryId: categoryId || null, total: 0, items: [] });
+    cats[k].total += total;
+    cats[k].items.push(item);
+  };
+
+  // gastos sueltos del mes
+  movements.forEach((m) => {
+    if (m.kind !== "gasto" || !confirmed(m) || m.month !== month) return;
+    add(m.categoryId, m.amount, { type: "gasto", id: m.id, merchant: m.merchant, amount: m.amount, ts: m.ts, note: m.note });
+  });
+
+  // compras TC agrupadas por purchaseGroup → asignadas a su mes de compra
+  const groups = {};
+  movements.forEach((m) => {
+    if (m.kind !== "cuotaTC" || !confirmed(m)) return;
+    const gk = m.purchaseGroup || m.id; // sin grupo → cada cuota es su propia "compra"
+    const g = (groups[gk] ||= { total: 0, best: m });
+    g.total += m.amount;
+    if ((m.ts || 0) < (g.best.ts || Infinity)) g.best = m;
+  });
+  Object.entries(groups).forEach(([group, g]) => {
+    const b = g.best;
+    const compraMonth = b.ts ? monthKey(new Date(b.ts)) : b.month;
+    if (compraMonth !== month) return;
+    add(b.categoryId, g.total, { type: "compraTC", id: group, merchant: b.merchant, amount: g.total, ts: b.ts, cuotasTotal: b.cuotasTotal });
+  });
+
+  return Object.values(cats).sort((a, b) => b.total - a.total);
+}

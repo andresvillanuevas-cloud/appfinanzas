@@ -14,6 +14,8 @@ import {
   addMonths,
   projectedCardPayments,
   cardStatement,
+  projectedCardPaymentsAll,
+  realExpenseByCategory,
 } from "./engine.js";
 
 // ---------- fixtures ----------
@@ -382,5 +384,84 @@ describe("cardStatement — estado de cuenta de un mes de facturación", () => {
   it("mes sin movimientos devuelve todo en cero", () => {
     const st = cardStatement([], "tc", "2026-07");
     expect(st).toMatchObject({ confirmadas: 0, porConfirmar: 0, abonado: 0, porPagar: 0, compras: [], pagos: [] });
+  });
+});
+
+describe("projectedCardPaymentsAll — proyección consolidada de todas las tarjetas", () => {
+  it("suma cuotas de 2 tarjetas en los mismos meses", () => {
+    // TC-A: 300.000/3 desde jul → 100.000 en jul/ago/sep
+    const compraA = registerCardPurchase({ cardId: "tcA", total: 300000, cuotas: 3, firstMonth: "2026-07" });
+    // TC-B: 600.000/2 desde jul → 300.000 en jul/ago
+    const compraB = registerCardPurchase({ cardId: "tcB", total: 600000, cuotas: 2, firstMonth: "2026-07" });
+    const proy = projectedCardPaymentsAll([...compraA, ...compraB], "2026-07");
+    expect(proy).toEqual([
+      { month: "2026-07", total: 400000 }, // 100.000 (A) + 300.000 (B)
+      { month: "2026-08", total: 400000 }, // 100.000 (A) + 300.000 (B)
+      { month: "2026-09", total: 100000 }, // solo A
+    ]);
+  });
+  it("excluye meses anteriores a fromMonth", () => {
+    const compra = registerCardPurchase({ cardId: "tcA", total: 90000, cuotas: 3, firstMonth: "2026-06" });
+    const proy = projectedCardPaymentsAll(compra, "2026-07");
+    expect(proy).toEqual([
+      { month: "2026-07", total: 30000 },
+      { month: "2026-08", total: 30000 },
+    ]);
+  });
+  it("ignora movimientos que no son cuotaTC", () => {
+    const compra = registerCardPurchase({ cardId: "tcA", total: 100000, cuotas: 1, firstMonth: "2026-07" });
+    const pago = buildCardPayment({ cardId: "tcA", fromId: "banco", amount: 100000, month: "2026-07" });
+    const gasto = { id: "g1", kind: "gasto", amount: 999999, month: "2026-07", status: "confirmado" };
+    const proy = projectedCardPaymentsAll([...compra, pago, gasto], "2026-07");
+    expect(proy).toEqual([{ month: "2026-07", total: 100000 }]);
+  });
+});
+
+describe("realExpenseByCategory — gasto real (compra TC completa en su mes de compra)", () => {
+  const july = 1783000000000; // ts en jul 2026
+  const mkTs = (dayOffsetMs) => july + dayOffsetMs;
+
+  it("cuenta la compra TC COMPLETA en su mes de compra, no distribuida en cuotas", () => {
+    // compra de 300.000 en 3 cuotas hecha en julio; el ts de la 1a cuota manda
+    const cuotas = registerCardPurchase({ cardId: "tc", total: 300000, cuotas: 3, firstMonth: "2026-07", categoryId: "catX" })
+      .map((c, i) => ({ ...c, ts: mkTs(i) })); // ts en julio para todas
+    const mesCompra = monthKey(new Date(july)); // el mes real del ts
+
+    const reporte = realExpenseByCategory(cuotas, mesCompra);
+    expect(reporte).toHaveLength(1);
+    expect(reporte[0].categoryId).toBe("catX");
+    expect(reporte[0].total).toBe(300000); // completa, no 100.000
+    expect(reporte[0].items).toHaveLength(1);
+    expect(reporte[0].items[0]).toMatchObject({ type: "compraTC", amount: 300000, cuotasTotal: 3 });
+
+    // en el mes siguiente NO aparece (no se distribuye)
+    const mesSig = addMonths(mesCompra, 1);
+    expect(realExpenseByCategory(cuotas, mesSig)).toEqual([]);
+  });
+
+  it("suma gastos sueltos y compras TC; ordena por total desc; agrupa sin categoría", () => {
+    const mes = monthKey(new Date(july));
+    const gasto1 = { id: "g1", kind: "gasto", amount: 50000, month: mes, status: "confirmado", merchant: "Feria", categoryId: "cat1", ts: july };
+    const gasto2 = { id: "g2", kind: "gasto", amount: 8000, month: mes, status: "confirmado", merchant: "Ajuste", categoryId: null, ts: july }; // sin categoría
+    const cuotas = registerCardPurchase({ cardId: "tc", total: 120000, cuotas: 4, firstMonth: mes, categoryId: "cat1" })
+      .map((c, i) => ({ ...c, ts: july + i }));
+    const reporte = realExpenseByCategory([gasto1, gasto2, ...cuotas], mes);
+    // cat1 = 50.000 (gasto) + 120.000 (compra completa) = 170.000; "sin" = 8.000
+    expect(reporte.map((r) => [r.categoryId, r.total])).toEqual([
+      ["cat1", 170000],
+      [null, 8000],
+    ]);
+    expect(reporte[0].items).toHaveLength(2); // 1 gasto + 1 compra TC agrupada
+  });
+
+  it("ignora pendientes, transferencias, ingresos y pagos", () => {
+    const mes = monthKey(new Date(july));
+    const movs = [
+      { id: "p", kind: "gasto", amount: 999, month: mes, status: "pendiente", categoryId: "c", ts: july },
+      { id: "t", kind: "transferencia", amount: 999, month: mes, status: "confirmado", ts: july },
+      { id: "i", kind: "ingreso", amount: 999, month: mes, status: "confirmado", categoryId: "c", ts: july },
+      { id: "pt", kind: "pagoTarjeta", amount: 999, month: mes, status: "confirmado", ts: july },
+    ];
+    expect(realExpenseByCategory(movs, mes)).toEqual([]);
   });
 });

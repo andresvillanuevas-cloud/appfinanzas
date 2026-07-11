@@ -15,6 +15,7 @@ export default function Mas({ session, accounts = [], categories = [], movements
     ["🏷️", "Categorías", `${categories.length} activas`, () => setModal({ type: "categories" })],
     ["📊", "Pulso", "Esperado vs Real", () => setModal({ type: "pulse" })],
     ["📈", "Tendencia", "Ingresos y gastos en el tiempo", () => setModal({ type: "tendencia" })],
+    ["💸", "Gasto real", "Cuánto gastaste por categoría al mes", () => setModal({ type: "gastoReal" })],
     ["📄", "Exportar a Excel (.xlsx)", "Respaldo con movimientos y cuentas", () => doExport(exportXLSX, "Excel")],
     ["📤", "Exportar a CSV", "Abre en Excel con tildes", () => doExport(exportCSV, "CSV")],
     ["🌎", "Moneda principal", "CLP · Peso Chileno", null],

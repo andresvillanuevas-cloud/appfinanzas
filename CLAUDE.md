@@ -214,7 +214,15 @@ Pedido del dueño, fuera del backlog original. Todo es agregación de **solo lec
 - 4 tests nuevos en engine.test.js (33/33 verdes) cubriendo agrupación cronológica, exclusión de meses previos a `fromMonth`, aislamiento por tarjeta/kind, y el desglose de los 4 stats.
 - Verificado e2e con datos reales: compra de 3 cuotas con nota larga, otra sin nota, un pago parcial — los 4 stats, la proyección y el detalle de movimiento con nota completa cuadraron exactamente.
 
-### Estado v1: FASES 0–5 COMPLETAS + revisión + categorías predefinidas + Fase 6 COMPLETA (recurrentes verificados en producción) + selector de fecha + notas/proyección TC/estado de cuenta + desplegado en Vercel. Pendiente: validar instalación PWA en un iPhone real (criterio 11).
+### Proyección consolidada TC + Gasto real por categoría (2026-07-10)
+Dos vistas de REPORTE de solo lectura. No se tocó `computeBalances` ni ningún cálculo de saldos/presupuesto — son agregaciones derivadas que se pueden quitar sin romper nada.
+- **`projectedCardPaymentsAll(movements, fromMonth)`** (engine.js): igual que `projectedCardPayments` per-card pero consolidando TODAS las tarjetas. UI: card "Proyección de cuotas" en la pantalla Cuentas, debajo del hero (solo si hay proyección). Lista mes→monto ("Agosto 2026 — $1.000.000").
+- **`realExpenseByCategory(movements, month)`** (engine.js): gasto real por categoría. **Diferencia clave con computeMonthStats/Presupuesto**: una compra TC cuenta COMPLETA en su mes de compra (mes del `ts` de la cuota más temprana del `purchaseGroup`), NO distribuida en cuotas. Devuelve categorías con total + items para el drill-down.
+- **Pantalla Gasto real** (`src/components/GastoReal.jsx`): sheet de SOLO LECTURA accesible desde Más → "Gasto real". Selector de mes + lista de categorías (con % y barra) + drill-down a los items que componen cada total (gastos sueltos + compras TC agrupadas). Sin edición, sin presupuesto comparado, sin acciones. No toca la pantalla Presupuesto.
+- 6 tests nuevos (39/39 verdes): suma de 2 tarjetas en proyección consolidada; compra TC contada completa en su mes y ausente en meses siguientes; orden/agrupación/exclusiones.
+- Verificado e2e: proyección Jul/Ago/Sep $100k c/u (facturación distribuida) vs Gasto real Julio $373k con la compra TC completa en $300k y agosto en $0 (no distribuida). Drill-down muestra items en lectura.
+
+### Estado v1: FASES 0–5 COMPLETAS + revisión + categorías predefinidas + Fase 6 COMPLETA + selector de fecha + notas/proyección/estado de cuenta TC + proyección consolidada + gasto real + desplegado en Vercel. Pendiente: validar instalación PWA en un iPhone real (criterio 11).
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).

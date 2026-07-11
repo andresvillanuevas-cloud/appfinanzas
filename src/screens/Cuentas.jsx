@@ -1,12 +1,15 @@
-import { C, CLP, keyToLabel, ACCOUNT_TYPES } from "../lib/theme";
+import { C, CLP, keyToLabel, keyToLabelLargo, ACCOUNT_TYPES } from "../lib/theme";
+import { projectedCardPaymentsAll } from "../engine/engine";
 import { Empty, Eyebrow } from "../components/ui";
 
-export default function Cuentas({ accounts, engine, setModal }) {
+export default function Cuentas({ accounts, engine, movements, setModal }) {
   const groups = [
     { label: "Dinero y ahorro", types: ["efectivo", "banco", "ahorro", "inversion"] },
     { label: "Tarjetas", types: ["tarjeta"] },
     { label: "Créditos", types: ["credito"] },
   ];
+  // proyección consolidada de cuotas TC de todas las tarjetas (solo lectura)
+  const proyeccion = projectedCardPaymentsAll(movements || []);
   return (
     <div style={{ padding: "6px 16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -30,6 +33,22 @@ export default function Cuentas({ accounts, engine, setModal }) {
           </div>
         </div>
       </div>
+
+      {proyeccion.length > 0 && (
+        <div style={{ background: C.card, borderRadius: 20, padding: 16, border: `1px solid ${C.line}`, marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 18 }}>🗓</span>
+            <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Proyección de cuotas</h2>
+          </div>
+          <div style={{ color: C.sub, fontSize: 12, marginBottom: 12 }}>Lo que viene a facturarse entre todas tus tarjetas.</div>
+          {proyeccion.map(({ month, total }, i) => (
+            <div key={month} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 2px", borderBottom: i < proyeccion.length - 1 ? `1px solid ${C.line}` : "none" }}>
+              <span style={{ fontWeight: 600 }}>{keyToLabelLargo(month)}</span>
+              <span style={{ fontWeight: 800, color: C.orange }}>{CLP(total)}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 14 }}>Tus cuentas</h2>
       {accounts.length === 0 ? (

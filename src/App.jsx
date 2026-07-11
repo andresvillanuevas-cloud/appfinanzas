@@ -21,6 +21,7 @@ import { QuickAdd, CardPurchase, PayCard, PayCredit, PayLine, Transfer } from ".
 import { BudgetAssign, Categories } from "./components/BudgetModals";
 import { Pulse, Scheduled } from "./components/PulseScheduled";
 import { Tendencia } from "./components/Tendencia";
+import { GastoReal } from "./components/GastoReal";
 
 const TABS = [
   { id: "inicio", label: "Inicio", icon: "🏠" },
@@ -46,6 +47,7 @@ function Modal({ shared, modal, close }) {
   if (t === "scheduled") return <Scheduled shared={shared} close={close} />;
   if (t === "tendencia") return <Tendencia shared={shared} close={close} />;
   if (t === "movementDetail") return <MovementDetail m={modal.movement} acc={shared.acc} cat={shared.cat} close={close} />;
+  if (t === "gastoReal") return <GastoReal shared={shared} close={close} />;
   return null;
 }
 
