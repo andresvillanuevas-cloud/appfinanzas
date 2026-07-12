@@ -99,6 +99,7 @@ export function CardPurchase({ shared, close }) {
   const [enCurso, setEnCurso] = useState(false);
   const [curIndex, setCurIndex] = useState(1); // próxima cuota a facturar
   const [note, setNote] = useState("");
+  const [allowOverLimit, setAllowOverLimit] = useState(false); // permitir superar el cupo disponible
   const gastoCats = shared.categories.filter((c) => c.type === "gasto");
   const card = shared.accounts.find((a) => a.id === cardId);
   const cupoDisp = card ? (card.cupo || 0) - (shared.engine.cardUsed[cardId] || 0) : 0;
@@ -108,10 +109,11 @@ export function CardPurchase({ shared, close }) {
   const startIndex = enCurso ? Math.min(Math.max(1, curIndex), cuotas) : 1;
   const cuotasRestantes = cuotas - (startIndex - 1);
   const montoRestante = per * cuotasRestantes + rem; // lo que falta facturar
+  const excedeCupo = total && montoRestante > cupoDisp;
 
   if (!cards.length) return <Sheet title="Gasto con tarjeta" close={close}><Empty icon="💳" title="No tienes tarjetas" sub="Crea una tarjeta de crédito primero desde Cuentas." /></Sheet>;
 
-  const valid = total && Number(total) > 0 && cardId && montoRestante <= cupoDisp && startIndex <= cuotas;
+  const valid = total && Number(total) > 0 && cardId && startIndex <= cuotas && (!excedeCupo || allowOverLimit);
   const firstMonth = firstNow ? todayKey() : addMonths(todayKey(), 1);
   const save = () => {
     shared.registerCardPurchase({ cardId, merchant: merchant || "Compra", categoryId: categoryId || null, total: Number(total), cuotas, firstMonth, note, startIndex, ts: dateStrToTs(date) });
@@ -140,7 +142,15 @@ export function CardPurchase({ shared, close }) {
       </Field>
       <Field label="Comercio"><input style={input} value={merchant} onChange={(e) => setMerchant(e.target.value)} placeholder="Ej. Supermercado, restaurante" /></Field>
       <Field label="Monto total"><input style={input} type="number" min="0" value={total} onChange={(e) => setTotal(e.target.value)} placeholder="0" /></Field>
-      {total && montoRestante > cupoDisp ? <div style={{ background: C.redSoft, color: C.red, borderRadius: 12, padding: 12, fontSize: 13, marginBottom: 12 }}>⚠ Lo que falta facturar ({CLP(montoRestante)}) excede el cupo disponible ({CLP(cupoDisp)}).</div> : null}
+      {excedeCupo && (
+        <div style={{ background: C.redSoft, borderRadius: 12, padding: 12, marginBottom: 12 }}>
+          <div style={{ color: C.red, fontSize: 13, marginBottom: 10 }}>⚠ Lo que falta facturar ({CLP(montoRestante)}) excede el cupo disponible ({CLP(cupoDisp)}).</div>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+            <input type="checkbox" checked={allowOverLimit} onChange={(e) => setAllowOverLimit(e.target.checked)} style={{ width: 18, height: 18, accentColor: C.red, cursor: "pointer" }} />
+            <span style={{ fontSize: 13, color: C.red, fontWeight: 700 }}>Permitir superar el cupo disponible</span>
+          </label>
+        </div>
+      )}
       <Field label="Categoría">
         <select style={{ ...input, appearance: "none" }} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
           <option value="">Sin categoría</option>

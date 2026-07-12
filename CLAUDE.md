@@ -230,7 +230,20 @@ Se corrigieron los 3 hallazgos más relevantes (todos eran Menor, ninguno tocaba
 - **Hero de Cuentas**: "Esperado" = patrimonio + neto de movimientos pendientes; "Por confirmar" = ese neto (antes ambos mostraban el patrimonio duplicado).
 Hallazgos menores NO corregidos (documentados, no bloqueantes): programados no tienen campo de fecha (solo frecuencia); la proyección consolidada no puede excluir cuotas ya pagadas (no hay marca por-cuota); guard de borrar cuenta es solo-UI; CSV exporta transferencia con signo +.
 
-### Estado v1: LISTO PARA USO REAL. Fases 0–6 + reportes + auditoría QA (11/11 reglas) + fixes menores, desplegado en Vercel. Pendiente único: validar instalación PWA en un iPhone real (criterio 11 del brief).
+### Fix: Gasto real no reconstruía el total de compras "en curso" (2026-07-12)
+Reportado por el dueño: una impresora de 100.000 en 10 cuotas con 7 ya pagadas (solo existen las 3 cuotas restantes como movimientos) se veía en Gasto real como 30.000 en vez de 100.000.
+- `realExpenseByCategory` ahora detecta compras en curso (`minIdx > 1` dentro del `purchaseGroup`) y reconstruye el total como `monto de la cuota de mayor índice × cuotasTotal` (esa cuota lleva el "per" base sin remanente). Compras nuevas (no en curso) siguen usando la suma exacta de sus cuotas, para no romper el ajuste de redondeo al peso.
+- El item del drill-down lleva `enCurso: true/false`; la UI (`GastoReal.jsx`) muestra "≈ total reconstruido (compra en curso)" para dejar claro que es una aproximación.
+- Recordatorio para el dueño: el mes en que aparece la compra en Gasto real es el de la **fecha de compra** que se ingresó al registrarla (no se puede inferir sola) — si se deja en "hoy" al cargar una compra vieja, aparecerá en el mes actual, no en el mes real de la compra.
+- 2 tests nuevos (41/41 verdes).
+
+### Feature: permitir superar el cupo de la tarjeta con advertencia (2026-07-12)
+Pedido del dueño: a veces necesita registrar una compra que excede el cupo disponible (ej. la tarjeta no lo bloqueó en el POS, o es un ajuste manual). Antes el botón "Registrar compra" quedaba bloqueado sin salida.
+- `CardPurchase` (MovementModals.jsx): nuevo estado `allowOverLimit`. Cuando el monto excede el cupo disponible, aparece un checkbox "Permitir superar el cupo disponible" junto a la advertencia roja existente. Sin marcar, el botón sigue deshabilitado (comportamiento previo intacto); marcado, permite guardar igual.
+- No cambia el motor: `cardUsed` simplemente queda por sobre el `cupo` de la cuenta (ya soportado, solo se mostraría con "uso" >100% si corresponde revisar esa barra a futuro).
+- Verificado e2e: compra de $1.500.000 con cupo disponible $1.000.000 — bloqueada sin el checkbox, guardada correctamente al marcarlo.
+
+### Estado v1: LISTO PARA USO REAL. Fases 0–6 + reportes + auditoría QA (11/11 reglas) + fixes menores + fix gasto real en curso + override de cupo, desplegado en Vercel. Pendiente único: validar instalación PWA en un iPhone real (criterio 11 del brief).
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).
