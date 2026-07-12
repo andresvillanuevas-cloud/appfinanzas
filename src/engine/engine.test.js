@@ -464,4 +464,29 @@ describe("realExpenseByCategory — gasto real (compra TC completa en su mes de 
     ];
     expect(realExpenseByCategory(movs, mes)).toEqual([]);
   });
+
+  it("compra 'en curso' reconstruye el TOTAL completo (no solo las cuotas restantes)", () => {
+    // impresora 100.000 en 10 cuotas comprada en enero; ya pagó 7 → registra cuotas 8..10
+    const enero = new Date(2026, 0, 15).getTime();
+    const cuotas = registerCardPurchase({
+      cardId: "tc", total: 100000, cuotas: 10, firstMonth: "2026-08", startIndex: 8, categoryId: "cat", ts: enero,
+    });
+    expect(cuotas).toHaveLength(3);                       // solo las 3 que faltan
+    expect(cuotas.reduce((s, c) => s + c.amount, 0)).toBe(30000); // suman 30.000
+
+    // pero el gasto real de enero (mes del ts) debe mostrar el TOTAL: 100.000
+    const gr = realExpenseByCategory(cuotas, "2026-01");
+    expect(gr).toHaveLength(1);
+    expect(gr[0].total).toBe(100000);                     // no 30.000
+    expect(gr[0].items[0]).toMatchObject({ type: "compraTC", amount: 100000, enCurso: true });
+  });
+
+  it("compra nueva (no en curso) usa la suma exacta, respetando remanente de redondeo", () => {
+    // 5.000/3 = 1.666+1.667+1.667 → suma exacta 5.000 (no per×N que daría 5.001)
+    const cuotas = registerCardPurchase({ cardId: "tc", total: 5000, cuotas: 3, firstMonth: "2026-07", categoryId: "cat" })
+      .map((c, i) => ({ ...c, ts: 1783000000000 + i }));
+    const gr = realExpenseByCategory(cuotas, monthKey(new Date(1783000000000)));
+    expect(gr[0].total).toBe(5000);
+    expect(gr[0].items[0].enCurso).toBe(false);
+  });
 });

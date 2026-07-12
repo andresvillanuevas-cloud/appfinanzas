@@ -40,6 +40,7 @@ export function GastoReal({ shared, close }) {
                 {it.type === "compraTC" ? `Compra TC · ${it.cuotasTotal || 1} cuota${(it.cuotasTotal || 1) > 1 ? "s" : ""}` : "Gasto"}
                 {it.ts ? ` · ${new Date(it.ts).toLocaleDateString("es-CL")}` : ""}
               </div>
+              {it.enCurso && <div style={{ color: C.orange, fontSize: 11, marginTop: 2 }}>≈ total reconstruido (compra en curso)</div>}
             </div>
             <div style={{ fontWeight: 800, color: C.red }}>-{CLP(it.amount)}</div>
           </div>

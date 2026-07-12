@@ -314,6 +314,12 @@ export function projectedCardPaymentsAll(movements, fromMonth = todayKey()) {
 // COMPLETA en su mes de compra (no distribuida en cuotas). El "mes de compra"
 // es el mes del `ts` de la cuota más temprana del grupo (la fecha real de la
 // compra), con fallback al `month` de esa cuota si no hay ts.
+//
+// Compras "en curso": cuando se registra una compra ya empezada (cuota X de N),
+// solo existen como movimientos las cuotas X..N. Para el gasto real igual se
+// cuenta el TOTAL de la compra reconstruido (per × N), no solo lo que falta por
+// pagar — si no, una impresora de 100.000 a la que le quedan 3 cuotas se vería
+// como 30.000 en vez de 100.000. La reconstrucción es aproximada al peso.
 // Devuelve categorías (incl. "sin categoría") con su total y sus items, para
 // permitir el drill-down. No altera ningún cálculo existente.
 export function realExpenseByCategory(movements, month) {
@@ -337,15 +343,21 @@ export function realExpenseByCategory(movements, month) {
   movements.forEach((m) => {
     if (m.kind !== "cuotaTC" || !confirmed(m)) return;
     const gk = m.purchaseGroup || m.id; // sin grupo → cada cuota es su propia "compra"
-    const g = (groups[gk] ||= { total: 0, best: m });
-    g.total += m.amount;
-    if ((m.ts || 0) < (g.best.ts || Infinity)) g.best = m;
+    const g = (groups[gk] ||= { sum: 0, best: m, ultima: m, minIdx: m.cuotaIndex ?? 1 });
+    g.sum += m.amount;
+    if ((m.ts || 0) < (g.best.ts || Infinity)) g.best = m;                       // cuota más temprana (mes de compra)
+    if ((m.cuotaIndex ?? 0) > (g.ultima.cuotaIndex ?? 0)) g.ultima = m;          // cuota de mayor índice = "per" base (sin remanente)
+    g.minIdx = Math.min(g.minIdx, m.cuotaIndex ?? 1);
   });
   Object.entries(groups).forEach(([group, g]) => {
     const b = g.best;
     const compraMonth = b.ts ? monthKey(new Date(b.ts)) : b.month;
     if (compraMonth !== month) return;
-    add(b.categoryId, g.total, { type: "compraTC", id: group, merchant: b.merchant, amount: g.total, ts: b.ts, cuotasTotal: b.cuotasTotal });
+    const enCurso = g.minIdx > 1;
+    // en curso: reconstruir total = per × N (per = monto de la cuota de mayor índice).
+    // compra nueva: la suma de las cuotas ES el total exacto.
+    const total = enCurso ? g.ultima.amount * (g.ultima.cuotasTotal || 1) : g.sum;
+    add(b.categoryId, total, { type: "compraTC", id: group, merchant: b.merchant, amount: total, ts: b.ts, cuotasTotal: b.cuotasTotal, enCurso });
   });
 
   return Object.values(cats).sort((a, b) => b.total - a.total);
