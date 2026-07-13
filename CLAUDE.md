@@ -243,7 +243,14 @@ Pedido del dueño: a veces necesita registrar una compra que excede el cupo disp
 - No cambia el motor: `cardUsed` simplemente queda por sobre el `cupo` de la cuenta (ya soportado, solo se mostraría con "uso" >100% si corresponde revisar esa barra a futuro).
 - Verificado e2e: compra de $1.500.000 con cupo disponible $1.000.000 — bloqueada sin el checkbox, guardada correctamente al marcarlo.
 
-### Estado v1: LISTO PARA USO REAL. Fases 0–6 + reportes + auditoría QA (11/11 reglas) + fixes menores + fix gasto real en curso + override de cupo, desplegado en Vercel. Pendiente único: validar instalación PWA en un iPhone real (criterio 11 del brief).
+### Deuda total más visible en el detalle de tarjeta (2026-07-12)
+Pedido del dueño tras preguntar cómo se comporta la deuda cuando no paga una cuota (aclarado que la app no arrastra cuotas impagas al mes siguiente; `cardUsed`/"por facturar" ya era la deuda real total, pero estaba poco visible).
+- `AccountDetail` (isCard): el hero pasó de mostrar "CUPO DISPONIBLE" como número principal a mostrar **"DEUDA TOTAL (por facturar)"** en grande y en naranja (color de deuda de la paleta), con "Cupo disponible X de Y" como texto secundario debajo.
+- Barra de uso de cupo: ahora se pone roja si `uso >= 100%` (posible desde que se permite superar el cupo).
+- Se eliminó la fila duplicada "USADO" (mostraba el mismo valor que "POR FACTURAR"); ahora la fila de 3 stats es POR FACTURAR / CUPO TOTAL / DISPONIBLE (disponible en rojo si quedó negativo).
+- Verificado e2e: tarjeta con $900.000 facturados de $1.000.000 de cupo — deuda total $900.000 destacada, uso 90%, disponible $100.000.
+
+### Estado v1: LISTO PARA USO REAL. Fases 0–6 + reportes + auditoría QA (11/11 reglas) + fixes menores + fix gasto real en curso + override de cupo + deuda total visible, desplegado en Vercel. Pendiente único: validar instalación PWA en un iPhone real (criterio 11 del brief).
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).

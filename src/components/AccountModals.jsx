@@ -154,15 +154,19 @@ export function AccountDetail({ shared, accountId, close }) {
     <Sheet title={a.name} close={close}>
       {isCard ? (
         <>
-          <div style={{ fontSize: 34, fontWeight: 800 }}>{CLP(cupoDisp)}</div>
-          <div style={{ fontSize: 12, color: C.sub, fontWeight: 700, marginBottom: 14 }}>CUPO DISPONIBLE</div>
+          {/* Deuda total: lo que realmente debes hoy — es el número que manda. */}
+          <div style={{ background: C.orangeSoft, border: `1px solid ${C.orange}`, borderRadius: 18, padding: 18, marginBottom: 14 }}>
+            <div style={{ fontSize: 12, color: C.orange, fontWeight: 700, letterSpacing: 0.5 }}>DEUDA TOTAL (por facturar)</div>
+            <div style={{ fontSize: 38, fontWeight: 800, color: C.orange }}>{CLP(facturar)}</div>
+            <div style={{ color: C.sub, fontSize: 12, marginTop: 2 }}>Cupo disponible {CLP(cupoDisp)} de {CLP(a.cupo || 0)}</div>
+          </div>
           <div style={{ background: C.card, borderRadius: 16, padding: 16, marginBottom: 14, border: `1px solid ${C.line}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><span style={{ fontWeight: 700 }}>Uso de cupo</span><span style={{ fontWeight: 700 }}>{uso}%</span></div>
-            <div style={{ height: 6, background: C.card2, borderRadius: 3, marginBottom: 12 }}><div style={{ height: 6, width: `${Math.min(100, uso)}%`, background: C.teal, borderRadius: 3 }} /></div>
+            <div style={{ height: 6, background: C.card2, borderRadius: 3, marginBottom: 12 }}><div style={{ height: 6, width: `${Math.min(100, uso)}%`, background: uso >= 100 ? C.red : C.teal, borderRadius: 3 }} /></div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-              <div><div style={{ color: C.sub, fontWeight: 700 }}>USADO</div><div>{CLP(facturar)}</div></div>
               <div><div style={{ color: C.sub, fontWeight: 700 }}>POR FACTURAR</div><div>{CLP(facturar)}</div></div>
               <div><div style={{ color: C.sub, fontWeight: 700 }}>CUPO TOTAL</div><div>{CLP(a.cupo || 0)}</div></div>
+              <div><div style={{ color: C.sub, fontWeight: 700 }}>DISPONIBLE</div><div style={{ color: cupoDisp < 0 ? C.red : C.txt }}>{CLP(cupoDisp)}</div></div>
             </div>
           </div>
           {(a.cierre || a.venc) && (
