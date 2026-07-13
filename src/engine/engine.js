@@ -258,6 +258,26 @@ export function confirmScheduled(sch, month) {
   };
 }
 
+// ¿Este programado/recurrente ya fue confirmado en `month`? Guard anti
+// doble-conteo (la UI pide confirmación extra si devuelve true). El estado se
+// DERIVA de movements por mes: al mes siguiente vuelve solo a "pendiente",
+// no se arrastra nada. Cubre ambos destinos:
+// - target 'cuenta': el confirmar creó un gasto/ingreso normal
+// - target 'tarjeta': el aprobar creó una cuotaTC 1/1 en esa tarjeta
+export function scheduledYaConfirmado(movements, s, month) {
+  const conf = (m) => m.status === "confirmado" || m.status === "cuadrado";
+  if (s.targetType === "tarjeta") {
+    return movements.some((m) =>
+      m.kind === "cuotaTC" && conf(m) && m.month === month &&
+      m.accountId === s.cardId && m.merchant === (s.merchant || s.name) && m.amount === s.amount
+    );
+  }
+  return movements.some((m) =>
+    conf(m) && m.month === month &&
+    m.kind === s.kind && m.amount === s.amount && m.accountId === s.accountId && m.merchant === s.name
+  );
+}
+
 // ---------- proyección de pagos de tarjeta ----------
 // Agrupa las cuotas TC (kind === "cuotaTC") de una tarjeta por mes de
 // facturación, desde `fromMonth` en adelante. Solo lectura: no altera saldos

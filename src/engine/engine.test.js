@@ -16,6 +16,7 @@ import {
   cardStatement,
   projectedCardPaymentsAll,
   realExpenseByCategory,
+  scheduledYaConfirmado,
 } from "./engine.js";
 
 // ---------- fixtures ----------
@@ -488,5 +489,53 @@ describe("realExpenseByCategory — gasto real (compra TC completa en su mes de 
     const gr = realExpenseByCategory(cuotas, monthKey(new Date(1783000000000)));
     expect(gr[0].total).toBe(5000);
     expect(gr[0].items[0].enCurso).toBe(false);
+  });
+});
+
+describe("Gastos recurrentes a TC — regla 11 aplicada a tarjeta", () => {
+  // el recurrente vive en `scheduled`, nunca en `movements`
+  const rec = {
+    id: "r1", name: "Seguro auto", merchant: "Seguro auto", kind: "gasto",
+    amount: 45000, targetType: "tarjeta", cardId: "tc", categoryId: "catSeg", frequency: "mensual",
+  };
+  const aprobar = (month) => registerCardPurchase({
+    cardId: rec.cardId, merchant: rec.merchant, categoryId: rec.categoryId,
+    total: rec.amount, cuotas: 1, firstMonth: month, startIndex: 1,
+  });
+
+  it("crear/editar el recurrente NO genera movimiento ni toca cardUsed/presupuesto", () => {
+    // sin aprobar, movements sigue vacío → nada cambia en el motor
+    const e = computeBalances(CUENTAS, []);
+    expect(e.cardUsed.tc).toBe(0);
+    expect(e.bal.banco).toBe(500000);
+    expect(computeMonthStats([], "2026-07").gas).toBe(0);
+    expect(scheduledYaConfirmado([], rec, "2026-07")).toBe(false); // pendiente de aprobar
+  });
+
+  it("aprobar crea exactamente 1 cuotaTC (1/1) en el mes, sube cardUsed y NO toca dinero", () => {
+    const movs = aprobar("2026-07");
+    expect(movs).toHaveLength(1);
+    expect(movs[0]).toMatchObject({
+      kind: "cuotaTC", cuotaIndex: 1, cuotasTotal: 1, month: "2026-07",
+      amount: 45000, accountId: "tc", categoryId: "catSeg", merchant: "Seguro auto",
+    });
+    const e = computeBalances(CUENTAS, movs);
+    expect(e.cardUsed.tc).toBe(45000);          // sube el por-facturar
+    expect(e.bal.banco).toBe(500000);           // caja intacta
+    expect(e.bal.efe).toBe(50000);
+    expect(e.totalDinero).toBe(550000);
+    // consume presupuesto de su categoría EN SU MES (vía computeMonthStats/cuotaTC)
+    expect(computeMonthStats(movs, "2026-07").gas).toBe(45000);
+    expect(computeMonthStats(movs, "2026-08").gas).toBe(0);
+  });
+
+  it("aprobado una vez, el guard exige confirmación extra para repetir en el mismo mes", () => {
+    const movs = aprobar("2026-07");
+    expect(scheduledYaConfirmado(movs, rec, "2026-07")).toBe(true); // la UI gatea con esto
+  });
+
+  it("al mes siguiente vuelve solo a 'pendiente de aprobar' (estado derivado, no arrastrado)", () => {
+    const movs = aprobar("2026-07");
+    expect(scheduledYaConfirmado(movs, rec, "2026-08")).toBe(false);
   });
 });

@@ -22,6 +22,7 @@ import { BudgetAssign, Categories } from "./components/BudgetModals";
 import { Pulse, Scheduled } from "./components/PulseScheduled";
 import { Tendencia } from "./components/Tendencia";
 import { GastoReal } from "./components/GastoReal";
+import { RecurrentesTC } from "./components/RecurrentesTC";
 
 const TABS = [
   { id: "inicio", label: "Inicio", icon: "🏠" },
@@ -48,6 +49,7 @@ function Modal({ shared, modal, close }) {
   if (t === "tendencia") return <Tendencia shared={shared} close={close} />;
   if (t === "movementDetail") return <MovementDetail m={modal.movement} acc={shared.acc} cat={shared.cat} close={close} />;
   if (t === "gastoReal") return <GastoReal shared={shared} close={close} />;
+  if (t === "recurrentesTC") return <RecurrentesTC shared={shared} close={close} />;
   return null;
 }
 
@@ -144,7 +146,18 @@ function Main({ session, theme, setTheme }) {
   };
   // Programado: al confirmar se crea el movimiento. Si es único se quita de la
   // lista; si es recurrente (mensual/semanal) queda para confirmarlo de nuevo.
+  // Destino 'tarjeta' (gasto recurrente a TC): aprobar genera una cuotaTC 1/1
+  // en el mes actual vía el mismo registerCardPurchase de siempre — sube el
+  // por-facturar y consume presupuesto de su categoría, sin tocar dinero real.
   const confirmScheduled = (s) => {
+    if (s.targetType === "tarjeta") {
+      addMovements(buildCardPurchase({
+        cardId: s.cardId, merchant: s.merchant || s.name, categoryId: s.categoryId,
+        total: s.amount, cuotas: 1, firstMonth: todayKey(), startIndex: 1,
+      }));
+      notify("Aprobado — cargado a la tarjeta");
+      return; // siempre mensual: queda en la lista para el próximo mes
+    }
     addMovements(buildScheduledMovement(s, todayKey()));
     if (s.frequency === "unico") {
       deleteScheduled(s.id);

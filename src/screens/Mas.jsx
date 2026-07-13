@@ -10,8 +10,11 @@ export default function Mas({ session, accounts = [], categories = [], movements
     fn(data);
     notify?.(`${label} exportado`);
   };
+  const programados = scheduled.filter((s) => (s.targetType || "cuenta") === "cuenta");
+  const recurrentesTC = scheduled.filter((s) => s.targetType === "tarjeta");
   const rows = [
-    ["🗓", "Programados", `${scheduled.length} activos · no tocan saldo`, () => setModal({ type: "scheduled" })],
+    ["🗓", "Programados", `${programados.length} activos · no tocan saldo`, () => setModal({ type: "scheduled" })],
+    ["🔁", "Gastos recurrentes", `${recurrentesTC.length} cobros a tarjeta · apruebas cada mes`, () => setModal({ type: "recurrentesTC" })],
     ["🏷️", "Categorías", `${categories.length} activas`, () => setModal({ type: "categories" })],
     ["📊", "Pulso", "Esperado vs Real", () => setModal({ type: "pulse" })],
     ["📈", "Tendencia", "Ingresos y gastos en el tiempo", () => setModal({ type: "tendencia" })],

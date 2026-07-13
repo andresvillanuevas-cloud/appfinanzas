@@ -260,11 +260,26 @@ export function useBudgets(userId, notify) {
 const scheduledFromRow = (r) => ({
   id: r.id, name: r.name, kind: r.kind, amount: Number(r.amount) || 0,
   accountId: r.account_id, day: r.day, frequency: r.frequency || "mensual",
+  // gastos recurrentes a TC (migración 0003)
+  targetType: r.target_type || "cuenta", cardId: r.card_id || null,
+  categoryId: r.category_id || null, merchant: r.merchant || null,
 });
-const scheduledToRow = (s, userId) => ({
-  id: s.id, user_id: userId, name: s.name, kind: s.kind, amount: s.amount,
-  account_id: s.accountId || null, day: s.day || null, frequency: s.frequency || "mensual",
-});
+const scheduledToRow = (s, userId) => {
+  const row = {
+    id: s.id, user_id: userId, name: s.name, kind: s.kind, amount: s.amount,
+    account_id: s.accountId || null, day: s.day || null, frequency: s.frequency || "mensual",
+  };
+  // las columnas de la migración 0003 solo se envían para recurrentes a TC:
+  // así el alta de programados clásicos sigue funcionando aunque la migración
+  // aún no se haya corrido (PostgREST rechaza columnas desconocidas).
+  if (s.targetType === "tarjeta") {
+    row.target_type = "tarjeta";
+    row.card_id = s.cardId || null;
+    row.category_id = s.categoryId || null;
+    row.merchant = s.merchant || null;
+  }
+  return row;
+};
 
 export function useScheduled(userId, notify) {
   const t = useTable({

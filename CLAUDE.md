@@ -250,7 +250,16 @@ Pedido del dueño tras preguntar cómo se comporta la deuda cuando no paga una c
 - Se eliminó la fila duplicada "USADO" (mostraba el mismo valor que "POR FACTURAR"); ahora la fila de 3 stats es POR FACTURAR / CUPO TOTAL / DISPONIBLE (disponible en rojo si quedó negativo).
 - Verificado e2e: tarjeta con $900.000 facturados de $1.000.000 de cupo — deuda total $900.000 destacada, uso 90%, disponible $100.000.
 
-### Estado v1: LISTO PARA USO REAL. Fases 0–6 + reportes + auditoría QA (11/11 reglas) + fixes menores + fix gasto real en curso + override de cupo + deuda total visible, desplegado en Vercel. Pendiente único: validar instalación PWA en un iPhone real (criterio 11 del brief).
+### Gastos recurrentes a TC (2026-07-12)
+Nueva sección para cobros mensuales que llegan a la tarjeta (seguros, suscripciones), con aprobación manual mes a mes. NO confundir con Programados (esos tocan dinero real).
+- **Modelo**: extiende `scheduled` — migración `supabase/migrations/0003_scheduled_tc.sql` con `target_type` ('cuenta'|'tarjeta'), `card_id`, `category_id` (obligatoria en la UI para tarjeta), `merchant`. **Correr manual en el dashboard, igual que 0002.** `scheduledToRow` solo envía las columnas nuevas cuando `targetType='tarjeta'`, así el alta de Programados clásicos no se rompe si la migración aún no corrió.
+- **Confirmación** (`confirmScheduled` en App.jsx): rama `targetType==='tarjeta'` **reutiliza `registerCardPurchase`** del motor con `{cuotas: 1, startIndex: 1, firstMonth: mesActual}` — genera una cuotaTC 1/1: sube `cardUsed`, consume presupuesto de su categoría en su mes, NO toca caja. Siempre mensual (queda en la lista). Sin función de creación nueva.
+- **Guard anti doble-conteo**: helper puro `scheduledYaConfirmado(movements, s, month)` en engine.js, que ahora cubre ambos destinos (cuenta: match gasto/ingreso; tarjeta: match cuotaTC en esa TC por merchant+amount+mes). Programados también lo usa (reemplazó el inline). El estado "aprobado este mes" se DERIVA de movements por mes — al mes siguiente vuelve solo a "Pendiente de aprobar", nada se arrastra.
+- **UI**: `src/components/RecurrentesTC.jsx`, sheet desde Más → "Gastos recurrentes" (🔁). Alta: nombre/comercio, monto, tarjeta, categoría obligatoria, día estimado, frecuencia fija "Cada mes" (no se permite 'único' aquí). Lista con estado del mes (Pendiente / ✓ Aprobado), botón Aprobar con re-confirmación si ya se aprobó este mes ("¿Cargarlo otra vez a la tarjeta?"). La pantalla Programados ahora filtra `targetType==='cuenta'` y los contadores de Más se separaron.
+- **Tests** (4 nuevos, 45/45 verdes): crear no genera movimiento ni toca cardUsed/presupuesto; aprobar crea exactamente 1 cuotaTC (1/1) del mes que sube cardUsed sin tocar dinero; el guard gatea la doble aprobación del mismo mes; al mes siguiente vuelve a pendiente.
+- Pendiente al escribir esto: correr 0003 en el dashboard y verificación e2e (cupo sube + presupuesto refleja + caja intacta).
+
+### Estado v1: LISTO PARA USO REAL. Fases 0–6 + reportes + auditoría QA (11/11 reglas) + fixes menores + fix gasto real en curso + override de cupo + deuda total visible + gastos recurrentes a TC, desplegado en Vercel. Pendientes: correr migración 0003 en Supabase, validar instalación PWA en un iPhone real (criterio 11 del brief).
 
 - Commits pequeños por feature, mensajes en español.
 - Nada de librerías nuevas sin preguntar (excepciones ya aprobadas: supabase-js, vite-plugin-pwa, vitest, SheetJS).

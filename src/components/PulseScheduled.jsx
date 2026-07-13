@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { C, CLP } from "../lib/theme";
-import { todayKey } from "../engine/engine";
+import { todayKey, scheduledYaConfirmado } from "../engine/engine";
 import { Sheet, Field, input, primaryBtn, Empty } from "./ui";
 
 // ---- Pulso: conciliación esperado vs real, cuenta por cuenta ----
@@ -58,11 +58,12 @@ export function Scheduled({ shared, close }) {
   const money = shared.accounts.filter((a) => a.type !== "tarjeta" && a.type !== "credito");
   const [accountId, setAccountId] = useState(money[0]?.id || "");
 
+  // esta pantalla es SOLO para programados a cuentas de dinero;
+  // los gastos recurrentes a TC viven en Más → Gastos recurrentes
+  const lista = shared.scheduled.filter((s) => (s.targetType || "cuenta") === "cuenta");
+
   // ¿ya se confirmó este programado en el mes actual? (evita doble conteo)
-  const confirmadoEsteMes = (s) => shared.movements.some(
-    (m) => m.status === "confirmado" && m.month === todayKey()
-      && m.kind === s.kind && m.amount === s.amount && m.accountId === s.accountId && m.merchant === s.name
-  );
+  const confirmadoEsteMes = (s) => scheduledYaConfirmado(shared.movements, s, todayKey());
 
   const add = () => {
     if (!name.trim() || !amount) return;
@@ -99,10 +100,10 @@ export function Scheduled({ shared, close }) {
         </select>
       </Field>
 
-      {shared.scheduled.length > 0 && (
+      {lista.length > 0 && (
         <>
-          <div style={{ fontWeight: 700, margin: "16px 0 10px" }}>Vista futura ({shared.scheduled.length})</div>
-          {shared.scheduled.map((s) => {
+          <div style={{ fontWeight: 700, margin: "16px 0 10px" }}>Vista futura ({lista.length})</div>
+          {lista.map((s) => {
             const yaEsteMes = confirmadoEsteMes(s);
             const preguntando = confirmAgain === s.id;
             return (
